@@ -21,19 +21,19 @@ public class JavaGcServer {
     private final MetricsTracker metrics;
     private final ThreadPoolExecutor executor;
     private final int allocMb;
-    private final long spinMs;
+    private final int spinIterations;
 
     /**
      * Creates a new JavaGcServer.
      * @param port HTTP listen port
      * @param threadPoolSize number of threads in the request-handling pool
      * @param allocMb megabytes of memory to allocate per /query request
-     * @param spinMs milliseconds to busy-spin per /query request
+     * @param spinIterations number of SHA-256 digest iterations per /query request
      * @throws IOException if the server socket cannot be bound
      */
-    public JavaGcServer(int port, int threadPoolSize, int allocMb, long spinMs) throws IOException {
+    public JavaGcServer(int port, int threadPoolSize, int allocMb, int spinIterations) throws IOException {
         this.allocMb = allocMb;
-        this.spinMs = spinMs;
+        this.spinIterations = spinIterations;
         this.metrics = new MetricsTracker();
         this.executor = new ThreadPoolExecutor(
             threadPoolSize, threadPoolSize,
@@ -62,7 +62,7 @@ public class JavaGcServer {
         var buffers = GcWorkSimulator.allocateMemory(allocMb);
 
         // Busy-spin to simulate compute work
-        long checksum = GcWorkSimulator.busySpin(spinMs);
+        long checksum = GcWorkSimulator.busySpin(spinIterations);
 
         // Record the request for metrics
         metrics.recordRequest();

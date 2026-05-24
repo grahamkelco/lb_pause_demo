@@ -17,15 +17,15 @@ public class Main {
         int port = intEnv("PORT", 8080);
         int threadPoolSize = intEnv("THREAD_POOL_SIZE", 16);
         int allocMb = intEnv("GC_ALLOC_MB", 64);
-        long spinMs = intEnv("GC_SPIN_MS", 4);
+        int spinIterations = intEnv("GC_SPIN_ITERATIONS", 2000);
 
-        var server = new JavaGcServer(port, threadPoolSize, allocMb, spinMs);
+        var server = new JavaGcServer(port, threadPoolSize, allocMb, spinIterations);
         server.start();
 
         System.out.println("Java GC server listening on port " + port
             + " (threads=" + threadPoolSize
             + ", allocMb=" + allocMb
-            + ", spinMs=" + spinMs + ")");
+            + ", spinIterations=" + spinIterations + ")");
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutting down Java GC server...");
