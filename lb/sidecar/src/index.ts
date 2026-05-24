@@ -2,6 +2,8 @@ export type { HealthCheck } from "./health_check.js";
 export { AlwaysHealthy } from "./always_healthy.js";
 export { RandomFailure } from "./random_failure.js";
 export type { RandomFailureConfig } from "./random_failure.js";
+export { GcPauseCheck } from "./gc_pause_check.js";
+export type { GcPauseCheckConfig } from "./gc_pause_check.js";
 export { HealthCheckRunner } from "./health_check_runner.js";
 export { LbConnection } from "./lb_connection.js";
 export { Sidecar } from "./sidecar.js";
