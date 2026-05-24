@@ -31,16 +31,15 @@ public final class GcWorkSimulator {
     }
 
     /**
-     * Busy-spins for the specified duration by repeatedly computing SHA-256 digests.
+     * Performs a fixed number of SHA-256 digest iterations to simulate CPU-bound work.
      * Uses {@link MessageDigest#digest}, a JDK method with natural safepoint
-     * opportunities, so G1GC can pause this thread promptly. The time check
-     * uses {@code System.nanoTime()} for monotonic accuracy.
-     * @param ms duration to spin in milliseconds
+     * opportunities, so G1GC can pause this thread promptly. A fixed iteration
+     * count means each request does identical work — latency increases under
+     * contention come purely from thread scheduling and GC pauses.
+     * @param iterations number of SHA-256 digest rounds to compute
      * @return a checksum derived from the digest output (prevents JIT dead-code elimination)
      */
-    public static long busySpin(long ms) {
-        long durationNanos = ms * 1_000_000L;
-        long start = System.nanoTime();
+    public static long busySpin(int iterations) {
         long checksum = 0;
 
         MessageDigest digest;
@@ -56,7 +55,7 @@ public final class GcWorkSimulator {
             block[i] = (byte) (i ^ 0xAB);
         }
 
-        while (System.nanoTime() - start < durationNanos) {
+        for (int i = 0; i < iterations; i++) {
             // Feed previous checksum into the block so each iteration differs
             block[0] = (byte) checksum;
             block[1] = (byte) (checksum >> 8);
