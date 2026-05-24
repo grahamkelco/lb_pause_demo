@@ -1,5 +1,6 @@
 import type { HealthCheck } from "./health_check.js";
 import { AlwaysHealthy } from "./always_healthy.js";
+import { RandomFailure } from "./random_failure.js";
 
 /**
  * Creates health check instances from a list of string names.
@@ -15,6 +16,8 @@ export function createHealthChecks(names: readonly string[]): HealthCheck[] {
     switch (name) {
       case "always_healthy":
         return new AlwaysHealthy();
+      case "random_failure":
+        return new RandomFailure();
       default:
         throw new Error(`Unknown health check: "${name}"`);
     }
