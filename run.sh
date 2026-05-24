@@ -12,7 +12,7 @@ Usage: ./run.sh <command> [options]
 Commands:
   up              Bring up Docker containers (starts Docker if needed)
   down            Bring down Docker containers
-  build <target>  Build the specified package (lb, sidecar, generator, web)
+  build <target>  Build the specified package (lb, sidecar, generator, web, sinkhole)
   lint <target>   Run the linter on the specified package
   test <target>   Run unit tests for the specified package
   help            Show this help message
@@ -22,6 +22,7 @@ Targets:
   sidecar    Load balancer sidecar
   generator  Load generator
   web        Web UI server
+  sinkhole   Sinkhole service
 
 Examples:
   ./run.sh up
@@ -41,9 +42,10 @@ resolvePackage() {
     sidecar)   echo "@backpressure/sidecar" ;;
     generator) echo "@backpressure/generator" ;;
     web)       echo "@backpressure/web" ;;
+    sinkhole)  echo "@backpressure/sinkhole" ;;
     *)
       echo "Error: Unknown target '$target'." >&2
-      echo "Valid targets: lb, sidecar, generator, web" >&2
+      echo "Valid targets: lb, sidecar, generator, web, sinkhole" >&2
       exit 1
       ;;
   esac
