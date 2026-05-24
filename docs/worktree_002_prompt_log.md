@@ -130,3 +130,93 @@ Here's a summary of what was implemented:
   unhealthy, recovery, drain interval values, and multi-cycle behavior.                                                                
   3. lb/sidecar/src/health_check_factory.ts — Added "random_failure" case to the factory switch.
   4. lb/sidecar/src/index.ts — Added re-exports for RandomFailure and RandomFailureConfig.  
+
+
+# Prompt 5
+We want to write the DESIGN.md document that will serve as a design document and overview of this project / demo / thesis. We need   
+to write a background section that describes the project at a high level, include a section on the solution (sidecar process, how the  
+protocol between the sidecar and the LB works), a section on scaling of the LB which should take into account that we now have extra   
+connections open for each server which are persistant. How many servers can an LB support with this protocol. How could we use a two   
+tier LB topology to essentially scale to data center/region/campus scales (probably). We also need a future work section that talks    
+abotu what a real implementation would look like with an Envoy plugin and the sidecar probably in C++ or Rust to aboid node overheads. 
+ I also want to include a section that explores the different scaling challenges of common server architectures (single process fixed  
+sized thread pool, single process unbounded thread poo, multi-process i.e. apache fork() of PHP/python/perl, event loop). Take a first 
+ pass at the draft of the doc and I will edit and fill in details after.
+
+## Response
+Done. The DESIGN.md now has the following sections:
+
+  1. Background — The problem statement, sources of pauses, the cascading failure pattern, and why traditional health checks fail      
+  2. Solution — Architecture diagram, sidecar process, the DRAIN/RESUME protocol with semantics, timing characteristics
+  3. Server Architecture Impact Analysis — Breakdown of fixed thread pool, unbounded thread pool, multi-process (fork), and event loop 
+  models with severity ratings and a summary matrix                                                                                    
+  4. Scaling — Single LB limits (~10K–50K servers), two-tier topology for datacenter/region scale (~100K servers)                      
+  5. Future Work — Envoy plugin integration, C++/Rust sidecar, plus additional directions (graduated drain, predictive drain, eBPF,    
+  drain coordination)                                                                                                                  
+                                                                                                                                       
+  Feel free to edit and fill in details — particularly around the real-world numbers from your Java database frontend experience, or   
+  any nuances I may have oversimplified.
+
+# Prompt 6
+Lets also include a section on when not to use this. Essentially if throughput it low or latency is high enough that these pauses    
+don't really matter. In those cases traditional helath check signals are sufficient. We should also explicitly call out that this      
+doesn't replace other health check signals. It is just a compliment to solve a specific type of problem.
+
+## Response
+Added a "When Not to Use This" section before Future Work covering:
+
+  - Low throughput services — queue buildup is too small to matter                                                                     
+  - High-latency services — pause duration is within noise of normal latency
+  - Services with built-in backpressure — bounded queues, cooperative scheduling, request deadlines                                    
+  - Relationship to traditional health checks — explicit table showing this is a complement, not a replacement, operating at a         
+  different timescale and detecting different failure modes 
+
+# Prompt 7
+We also need to add a section to discuss corrdinated server failure. What to do and the risks. We should discuss that a smarter      
+version of this LB could optionally ignore the drain if under duress or could just reject the traffic (probably a product/context      
+specific call to make). I'd also like to discuss the real possibility of coordinated failure in the GC case. If you imagine a          
+small-ish pool of servers that all take on rund-robing homogeneous work at the same time then they will likely have coordinated memory 
+ buildup and pressure leading to GC pauses around the same time. To combat this we could add some routing jitter, stagger server       
+rampup, or include some memory pressure backpressure signal later. The point isn't to design this perfectly now but to call out that   
+coordinated parallel drains are actual a real possibility to consider. 
+
+## Response
+Added the "Coordinated Server Failure" section covering:
+
+  - Why it's a real risk — GC correlation in homogeneous pools receiving identical round-robin traffic, deployment rollouts, shared    
+  dependency stalls
+  - LB-side mitigations — Panic threshold/duress mode with options (ignore drains, reject traffic, partial respect) and noting this is 
+  a product-specific decision                                                                                                          
+  - Server-side mitigations — Routing jitter, staggered ramp-up, GC scheduling hints, memory pressure signaling
+  - Design philosophy — Explicitly calling out that this is a real operational concern to consider, not a solved problem in scope 
+
+# Prompt 8
+Lets also add a section that briefly discusses the effects of the sidecar itself and that observing at high frequency is not free.   
+If not isolated, under a thread pool storm (as with the unbounded thread pool server) the sidecar itself is at risk for scheduling and 
+ getting a quantum quick enough to maintain out 1ms loop. Further, the sidecar itself is consuming CPU with its tight loop. By         
+expecting us to have a quantum every 1ms or less we are forcing at least one core to preempt and context switch for us, that has its   
+own impact on p99s.
+
+## Response
+ Added an "Observer Effect: Cost of High-Frequency Monitoring" section covering:
+             
+  - CPU and scheduling overhead — Forced preemption, cache disruption, CPU accounting; the irony that p99 protection introduces p99    
+  noise                                                                                                                                
+  - Reliability under duress — The sidecar itself gets starved during thread pool storms and CPU cgroup limits, potentially degrading  
+  exactly when it's needed most                                                                                                        
+  - Practical tradeoffs — Table of interval vs. overhead to guide deployment decisions based on host size
+
+# Prompt 9
+Lets also add a section addressing the scope of the demo project itself. That we built a custom load generator, toy load balancer,   
+the sidecar, and a couple of server implementations, along with a web UI / dashboard. The driving goal was to try to keep logic self   
+contained within the project. Things like prometheus werent used for metrics since it wasn't really needed and just added complexity.  
+The custom load generator was built mainly because its easy with claude to do so and let us implement the HTTP GET semantics we wanted 
+ to tie it into the web UI for easy simulation. The toy load balancer was built to keep all core logic visible and not rely on         
+something like a specific envoy version. Typescript was used mainly for simplicity. The java server example was implemented to be a    
+reference example shoing more deeply what could be done. Overall about 5h was spent on the project. About 2h on the core simualtion    
+code, 2h tinkering with simulations and about 1h writing the doc. 
+
+## Response
+Added a "Project Scope & Approach" section at the top of the document covering what was built, why each piece exists, the design
+  philosophy of self-containment, and the ~5h time breakdown. It's positioned first so readers immediately understand the context
+  before diving into the technical content.
