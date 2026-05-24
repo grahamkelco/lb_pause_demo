@@ -114,3 +114,19 @@ Everything is clean — only pre-existing warnings, zero errors. Here's a summar
   - index.ts — Re-exports
 
   Tests: 55 total (43 LB + 12 sidecar), all passing
+
+# Prompt 4 (Plan Mode)
+We want to implement a random failure healthcheck for the sidecar that will randomly determine if there is a failure and how long it 
+ should last (from 1s to 10s). We will use this to test the load balancer failover semantics on the sinkhole server.
+
+## Response
+See .ai/plans/wt_002_prompt_004_plan.md for plan mode output.
+
+Here's a summary of what was implemented:                                                                                            
+                                                                                                                                       
+  1. lb/sidecar/src/random_failure.ts — RandomFailure class implementing HealthCheck. Alternates between healthy (5-15s) and unhealthy 
+  (1-10s) periods with random durations. Uses Date.now() to track transitions.                                                         
+  2. lb/sidecar/src/__tests__/random_failure.test.ts — 6 tests using vi.useFakeTimers() covering: initial healthy state, transition to 
+  unhealthy, recovery, drain interval values, and multi-cycle behavior.                                                                
+  3. lb/sidecar/src/health_check_factory.ts — Added "random_failure" case to the factory switch.
+  4. lb/sidecar/src/index.ts — Added re-exports for RandomFailure and RandomFailureConfig.  
