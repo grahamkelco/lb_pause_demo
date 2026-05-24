@@ -50,3 +50,76 @@ Builds cleanly. The key changes:
    entry/exit, so G1GC can pause threads promptly
   - The previous checksum is fed back into the input block each iteration, creating a data dependency chain the JIT can't eliminate        
   - The checksum is still returned and included in the /query response body, preventing dead-code elimination 
+
+# Prompt 4
+Actually, we don't want to spin for a fixed amount of time. The entire point of this demo is that p99 latency will increase under       
+  contention. If we spin for a fixed time this ends up doing a variable amount of work if our thread gets preempted. Lets spin for some    
+  fixed amount of iterations.
+
+## Response
+
+
+# Prompt 5 (Plan Mode)
+We now want to implement an integration with the JavaGcServer and a health checker for the sidecar. We want to implement a GCMXBean      
+NotificationListener that watches for GC events and sents an IPC to the sidecar that a GC is about to happen and when it completes. On the 
+ sidecar side we need something to recive the IPC and set the state.
+
+## Response
+See .ai/plans/wt_003_prompt_005_plan.md for plan mode output
+
+# Prompt 6
+Can you explain the safepoint notifier / JFr event stream to me more. I have not used JFR streaming before (only standard recording      
+capture). Will this actually send the UDP message before the safepoint on the safepointBegin event?
+
+## Response
+Great question — the answer is no, and it's worth understanding why.                                                                     
+                                                                                                                                         
+  How JFR Streaming Actually Delivers Events                                                                                               
+   
+  RecordingStream is not a synchronous hook. The event lifecycle is:                                                                       
+                                                                                                                                        
+  1. The JVM records events into thread-local buffers
+  2. Those buffers are periodically flushed to global storage (default ~1 second interval)
+  3. The RecordingStream consumer thread reads from global storage and invokes your onEvent callbacks                                      
+                                                                                                                                           
+  So there are two layers of delay between an event occurring and your handler running:                                                    
+  - Buffer flush latency (~1s by default)                                                                                                  
+  - Consumer thread scheduling                                                                                                             
+                                                                                                                                        
+  The safepoint problem specifically                                                                                                       
+                                                                                                                                        
+  During a safepoint, all Java threads are stopped — including the RecordingStream consumer thread. So the sequence is actually:           
+  
+  1. JVM initiates safepoint → jdk.SafepointBegin event is recorded into a buffer                                                          
+  2. All threads stop (including the stream consumer)                                                                                   
+  3. VM operation runs (e.g., GC)                                                                                                          
+  4. Threads resume → jdk.SafepointEnd is recorded                                                                                         
+  5. Eventually buffers flush                                                                                                              
+  6. Consumer thread picks up both events → your callbacks fire → UDP datagrams sent                                                       
+                                                                                                                                           
+  For a short pause (say 20ms), both safepoint_start and safepoint_end UDP messages will likely arrive together, after the pause is already
+   over. The sidecar would briefly mark unhealthy during the cooldown window, but the actual pause was already missed.                     
+                                                                                                                                           
+  What this implementation actually buys us                                                                                             
+
+  It's reactive, not proactive. The value is:                                                                                              
+   
+  - Back-to-back pauses: After a GC, the cooldown keeps the server drained, protecting against the next pause that often follows closely   
+  - Long pauses: For major GC pauses (hundreds of ms+), the buffer flush may happen mid-pause if the pause spans a flush boundary, giving
+  partial coverage                                                                                                                         
+  - Observability: You get real safepoint data flowing to the sidecar even if the timing isn't perfectly predictive                     
+                                                                                                                                           
+  If you want lower latency                                                                                                                
+                                                                                                                                           
+  A few options to consider:                                                                                                               
+                                                                                                                                        
+  1. Reduce JFR flush interval — stream.setSettings(Map.of("flush-interval", "100ms")) or call                                             
+  stream.setFlushInterval(Duration.ofMillis(100)). This tightens the buffer flush from ~1s to 100ms, but adds overhead and still can't fire
+   during a safepoint.                                                                                                                     
+  2. JMX GcNotificationListener — fires on a separate thread right after GC completes (lower latency than JFR buffering, but only covers GC
+   pauses, not all safepoints, and only fires after completion).                                                                           
+  3. Sidecar-side heartbeat / pause detection — the sidecar pings the server on a tight interval and detects when responses stop. This is
+  the only approach that can detect a pause while it's happening, because the detection runs outside the JVM.                              
+                                                                                                                                        
+  Want me to adjust the approach — for example, adding setFlushInterval to tighten the latency, or switching to a different detection      
+  strategy?
