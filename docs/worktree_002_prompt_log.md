@@ -66,3 +66,51 @@ Everything looks good. Here's a summary of what was done:
 # Prompt 3
 Help resolve the rebase merge confict
 
+# Prompt 4 (Plan Mode)
+We now need to implement the core of the server pause monitoring sidecar process. This will also be in typescript and should live in 
+ lb/sidecar/. We will package it up to include in server docker configs (from services/). The sidecar should implement a modular       
+health check system that it checks in a loop. It can check multiple of these health checks per iteration. Each health check should     
+just expose a simple isHealthy() method as well as a getDrainInterval() method that can be used to specify the minimum drain duration  
+for the health check. ALL health checks must pass for the server to be considered healthy. The drain duration is the max of all drain  
+Intervals. The sidecar will communicate with the load balancer over a long lived TCP connection. It will send DRAIN:<duration>         
+commands to tell the load balancer to stop routing to the server for some amount of time. It will then send RESUME commands once all   
+health checks pass. On the load balancer the last command wins. This means that if we are in a DRAIN a new DRAIN with an interval will 
+ reset the timer for an automatic timeout/resume. If we are in a DRAIN and a RESUME comes in then we start routing to the server       
+immedatly. On the sidecar side we want to send DRAIN / RESUME commands every drainInterval / 2 duration even if the command has not    
+changed. This prevents us from missing a RESUME or DRAIN command if there was a network issue. On the load balancer side we run the    
+risk of all servers in the backend server pool from being drained at the same time. If no servers are available we should send back an 
+ HTTP 503 code. We will also need to implement a dummy always healthy health check for the sidecar. The set of healthchecks should be  
+configurable at sidecar startup time. The sidecar also needs it own /metrics endpoint that will just export a boolean 0 or 1 value for 
+ if the server is healthy (1) or unhealthy (0).
+
+## Response
+See .ai/plans/wt_002_prompt_004_plan.md for plan mode output.
+
+Everything is clean — only pre-existing warnings, zero errors. Here's a summary of what was implemented:
+
+  Summary
+
+  Part 1: Load Balancer Modifications
+
+  - lb/src/drain_manager.ts — New DrainManager class tracking per-server drain state with auto-resume timers
+  - lb/src/sidecar_listener.ts — New SidecarListener class creating TCP servers on each server's sidecarPort, parsing newline-delimited
+   DRAIN:<ms> and RESUME commands
+  - lb/src/router.ts — Modified RoundRobinRouter.next() to skip drained servers and return null when all drained
+  - lb/src/proxy_server.ts — Returns 503 Service Unavailable when next() returns null
+  - lb/src/main.ts — Wired DrainManager and SidecarListener into the startup/shutdown lifecycle
+  - lb/src/index.ts — Added re-exports
+
+  Part 2: Sidecar Process (all new files in lb/sidecar/src/)
+
+  - health_check.ts — HealthCheck interface with isHealthy() and getDrainInterval()
+  - always_healthy.ts — Dummy health check that always returns true (200ms drain interval)
+  - health_check_runner.ts — High-frequency check loop with stateChange events
+  - lb_connection.ts — TCP client with auto-reconnect and exponential backoff
+  - config.ts — YAML config loading (lbHost, lbPort, checkIntervalMs, metricsPort, healthChecks)
+  - metrics_server.ts — HTTP /metrics endpoint exporting sidecar_server_healthy gauge (0/1)
+  - health_check_factory.ts — Maps health check names to instances
+  - sidecar.ts — Orchestrator wiring runner + connection + metrics + redundant send loop
+  - main.ts — Entry point with graceful shutdown
+  - index.ts — Re-exports
+
+  Tests: 55 total (43 LB + 12 sidecar), all passing

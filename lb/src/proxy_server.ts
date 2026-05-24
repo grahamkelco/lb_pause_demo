@@ -60,11 +60,20 @@ export class ProxyServer {
 
   /**
    * Handles an incoming request by selecting a target and forwarding to it.
+   *
+   * Returns 503 Service Unavailable when all downstream servers are drained.
+   *
    * @param req - The incoming HTTP request.
    * @param res - The outgoing HTTP response.
    */
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
     const target = this.router.next();
+    if (target === null) {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      res.writeHead(503, { "Content-Type": "text/plain" });
+      res.end("Service Unavailable");
+      return;
+    }
     this.forwardRequest(target, req, res);
   }
 

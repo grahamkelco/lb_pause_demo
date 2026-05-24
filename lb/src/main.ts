@@ -1,6 +1,8 @@
 import { loadConfig } from "./config.js";
+import { DrainManager } from "./drain_manager.js";
 import { RoundRobinRouter } from "./router.js";
 import { ProxyServer } from "./proxy_server.js";
+import { SidecarListener } from "./sidecar_listener.js";
 
 const DEFAULT_CONFIG_PATH = "./lb_config.yaml";
 
@@ -25,21 +27,30 @@ async function main(): Promise<void> {
   console.log(`Loading config from ${configPath}`);
 
   const config = loadConfig(configPath);
-  const router = new RoundRobinRouter(config.servers);
+  const drainManager = new DrainManager();
+  const router = new RoundRobinRouter(config.servers, drainManager);
   const server = new ProxyServer(router, config.listen.port);
+  const sidecarListener = new SidecarListener(config.servers, drainManager);
 
   // Graceful shutdown on SIGINT / SIGTERM
   const shutdown = (): void => {
     // eslint-disable-next-line no-console
     console.log("\nShutting down...");
-    void server.stop().then(() => {
+    void Promise.all([
+      server.stop(),
+      sidecarListener.stop(),
+    ]).then(() => {
+      drainManager.shutdown();
       process.exit(0);
     });
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 
-  await server.start();
+  await Promise.all([
+    server.start(),
+    sidecarListener.start(),
+  ]);
 
   // eslint-disable-next-line no-console
   console.log(
