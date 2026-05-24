@@ -1,0 +1,14 @@
+networks:
+  backpressure:
+    driver: bridge
+
+services:
+  lb:
+    build:
+      context: .
+      dockerfile: lb/Dockerfile
+    container_name: backpressure-lb
+    ports:
+      - "8080:8080"
+    networks:
+      - backpressure

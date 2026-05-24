@@ -6,8 +6,16 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc",
+    "start": "node dist/main.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0"
   }
 }
