@@ -23,9 +23,10 @@ export interface ServiceStatus {
 
 /** Parameters for starting a simulation run. */
 export interface SimulationParams {
+  serverType: string;
+  serverCount: number;
   rps: number;
   duration: number;
-  uri: string;
 }
 
 /** Result returned from a simulation run. */
@@ -42,4 +43,11 @@ export interface SimulationResult {
   min: number;
   max: number;
   mean: number;
+}
+
+/** Summary of a server type group from the LB admin API. */
+export interface ServerGroup {
+  type: string;
+  total: number;
+  active: number;
 }

@@ -1,4 +1,4 @@
-import { loadSidecarConfig } from "./config.js";
+import { loadSidecarConfig, loadSidecarConfigFromEnv } from "./config.js";
 import { createHealthChecks } from "./health_check_factory.js";
 import { Sidecar } from "./sidecar.js";
 
@@ -19,12 +19,17 @@ function resolveConfigPath(): string {
  * Loads configuration, creates health checks, and starts the sidecar.
  */
 async function main(): Promise<void> {
-  const configPath = resolveConfigPath();
-
-  // eslint-disable-next-line no-console
-  console.log(`Loading sidecar config from ${configPath}`);
-
-  const config = loadSidecarConfig(configPath);
+  let config;
+  if (process.env["LB_HOST"]) {
+    // eslint-disable-next-line no-console
+    console.log("Loading sidecar config from environment variables");
+    config = loadSidecarConfigFromEnv();
+  } else {
+    const configPath = resolveConfigPath();
+    // eslint-disable-next-line no-console
+    console.log(`Loading sidecar config from ${configPath}`);
+    config = loadSidecarConfig(configPath);
+  }
   const checks = createHealthChecks(config.healthChecks);
   const sidecar = new Sidecar(config, checks);
 

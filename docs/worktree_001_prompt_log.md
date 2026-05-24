@@ -252,3 +252,125 @@ LEts use another port
 ## Response
 Everything is working — the web server is up on port 3002, and it's successfully scraping the generator
   (showing healthy: true).
+
+# Prompt 11
+We now want to update our Docker config and system such that we can bring up multiple backend servers. We     
+want to have at least 4 available servers. For now each should run the sinkhole server and the sidecar process. 
+ In the UI we want to be able to select the type of server from a dropdown (for now just sinkhole is the only   
+option but in the future we will have java-gc and others). You should also be able to select the number of      
+servers. The load balancer will need to be able to adapt its config based on the UI spec so that it can exclude 
+ servers if the simulation isn't running with the full number of servers.
+
+## Response
+See .ai/plans/wt_001_prompt_011_plan.md for plan mode output.
+
+All passing. Let me do a final summary of everything that was implemented:
+                                                                                                                
+  Implementation complete. Here's a summary of all changes across 8 phases:                                     
+  
+  Phase 1: LB Config                                                                                            
+                                                                                                              
+  - lb/src/config.ts — Added type?: string to ServerConfig interface and parsing in parseServerEntry()          
+  - lb/lb_config.yaml — Updated with 4 sinkhole servers (sinkhole-1..4) with type tags
+                                                                                                                
+  Phase 2: Router                                                                                             
+                                                                                                                
+  - lb/src/router.ts — Added ServerGroup type, type-aware routing with setActiveServers(), setActiveType(),     
+  getServerGroups(), and buildEligibleList()
+  - lb/src/__tests__/router.test.ts — Added 7 new tests for type-based routing                                  
+                                                                                                                
+  Phase 3: Admin Endpoint
+                                                                                                                
+  - lb/src/admin_handler.ts (new) — GET/POST /admin/servers handler                                             
+  - lb/src/proxy_server.ts — Intercepts admin requests before proxy routing
+  - lb/src/main.ts — Wires AdminHandler to ProxyServer                                                          
+  - lb/src/index.ts — Exports new types                                                                         
+  - lb/src/__tests__/admin_handler.test.ts (new) — 4 tests                                                      
+                                                                                                                
+  Phase 4: Sidecar Env Config                                                                                 
+                                                                                                                
+  - lb/sidecar/src/config.ts — Added loadSidecarConfigFromEnv()                                                 
+  - lb/sidecar/src/main.ts — Uses env config when LB_HOST is set
+                                                                                                                
+  Phase 5: Web Backend                                                                                        
+                                                                                                                
+  - web/src/server/config.ts — Added lbTarget and sinkhole scrape targets                                       
+  - web/src/server/routes/simulation_routes.ts — Orchestrates LB config + generator with serverType/serverCount
+  - web/src/server/routes/services_routes.ts — Added GET /api/services/servers proxy to LB admin API            
+  - web/src/server/app.ts — Passes lbTarget to routes                                                           
+                                                                                                                
+  Phase 6: Web UI                                                                                               
+                                                                                                                
+  - web/src/client/types.ts — Updated SimulationParams, added ServerGroup                                       
+  - web/src/client/hooks/use_server_groups.ts (new) — Fetches server groups
+  - web/src/client/components/simulation_controls.tsx — Dynamic dropdowns for type/count, removed URI input     
+  - web/src/client/app.tsx — Uses useServerGroups() hook                                                        
+  - web/src/client/styles/global.css — Added select styling                                                     
+                                                                                                                
+  Phase 7: Docker                                                                                             
+                                                                                                                
+  - Dockerfile — Added sinkhole and sidecar build/runtime stages                                                
+  - docker-compose.yml — Added 8 new services (sinkhole-1..4, sidecar-1..4), updated lb and web dependencies
+                                                                                                                
+  Phase 8: Verification                                                                                       
+                                                                                                                
+  - All packages build successfully                                                                             
+  - No lint errors (only pre-existing warnings)
+  - All 54 LB tests pass, all 10 web tests pass 
+
+# Prompt 12
+In the UI I only see data for the generator and no rps metrics from the sinkhole servers
+
+## Response
+The issue was that metrics[0] — the default when no service is selected — was no longer guaranteed to be the
+  generator. With 5 scrape targets racing, a sinkhole service could land in position 0, and the charts would try
+   to read sinkhole_* metric names instead of generator_*.
+
+  Fixed by defaulting the "All" view to prefer the generator service: metrics.find((m) => m.name ===
+  "generator"). You can still click on individual sinkhole tabs to see their RPS data.
+
+
+# Prompt 13
+The success/error counts are confusing on the throughput chart. They have unusually high numbers (3000) when  
+the rps is around 100?
+
+# Prompt 14
+ I would also like to be able to see the throughput graphs for ALL active servers at the same time. The UI     
+currently has tabs which make it awkward to see what is going on. I would like to show genrator metrics         
+(latency, throughput) at the top, then load balancer metrics (we don't have any at the moment), then server &   
+sidecar metrics. Each server should show its throughput as well the health metric from its sidecar. Only the    
+active servers should be displayed on the dashboard.  
+
+
+# Prompt 15
+We also want to implement another service type, the simulated_pause service which will work like the sinkhole 
+ service by accepting a /query endpoint and have the same /metrics endpoint. However for this we want to        
+simulate a GC pause by having a random interval where a GC might happen then pause for 200ms. On the /query     
+side we need to cause actual load and so we want to do active work that forces real CPU time. This can not be   
+tied to a specific duration and must be a fixed amount of compute (i.e. hash something 2000 times).
+
+## Response
+All 64 tests pass. Here's a summary of everything implemented:                                                
+                                                                                                                
+  Phase 1 - New services/simulated_pause/ package (8 files created):                                            
+  - package.json / tsconfig.json — workspace config                                                             
+  - src/metrics_tracker.ts — RPS tracking (copied from sinkhole)                                                
+  - src/gc_pause_simulator.ts — blocks event loop for 200ms at random 5-15s intervals using Atomics.wait        
+  - src/cpu_work.ts — 2000 iterations of SHA-256 hashing per request                                            
+  - src/simulated_pause_server.ts — HTTP server with /query (CPU work + metrics) and /metrics (simulated_pause_*
+   prefix)                                                                                                      
+  - src/main.ts / src/index.ts — entrypoint and re-exports                                                      
+                                                                                                                
+  Phase 2 - LB config: Added 4 simulated-pause servers on sidecar ports 9009-9012                               
+                                                                                                                
+  Phase 3 - Docker: Added simulated-pause-build/simulated-pause stages in Dockerfile, 4 server containers + 4   
+  sidecar containers (with HEALTH_CHECKS=random) in docker-compose                                              
+                                                                                                                
+  Phase 4 - Web backend: Added 8 scrape targets (4 servers + 4 sidecars) to config, added "simulated-pause":    
+  "/query" to TYPE_PATH_MAP                                                                                   
+                                                                                                                
+  Phase 5 - UI fixes:                                                                                         
+  - app.tsx: sidecarNameFor() now takes groupType and handles non-sinkhole types by prefixing sidecar- (e.g.  
+  simulated-pause-3 → sidecar-simulated-pause-3)                                                                
+  - server_card.tsx: RPS metric lookup is now dynamic — finds the first *_requests_per_second key instead of
+  hardcoding sinkhole_requests_per_second                                                                       

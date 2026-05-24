@@ -10,6 +10,346 @@ services:
     container_name: backpressure-lb
     ports:
       - "8080:8080"
+    depends_on:
+      - sinkhole-1
+      - sinkhole-2
+      - sinkhole-3
+      - sinkhole-4
+      - sinkhole-random-1
+      - sinkhole-random-2
+      - sinkhole-random-3
+      - sinkhole-random-4
+      - simulated-pause-1
+      - simulated-pause-2
+      - simulated-pause-3
+      - simulated-pause-4
+    networks:
+      - backpressure
+
+  # --- Sinkhole servers (always healthy) ---
+  sinkhole-1:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sinkhole-2:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sinkhole-3:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sinkhole-4:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sidecar-1:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9001
+      - HEALTH_CHECKS=always_healthy
+    depends_on:
+      - lb
+      - sinkhole-1
+    networks:
+      - backpressure
+
+  sidecar-2:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9002
+      - HEALTH_CHECKS=always_healthy
+    depends_on:
+      - lb
+      - sinkhole-2
+    networks:
+      - backpressure
+
+  sidecar-3:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9003
+      - HEALTH_CHECKS=always_healthy
+    depends_on:
+      - lb
+      - sinkhole-3
+    networks:
+      - backpressure
+
+  sidecar-4:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9004
+      - HEALTH_CHECKS=always_healthy
+    depends_on:
+      - lb
+      - sinkhole-4
+    networks:
+      - backpressure
+
+  # --- Sinkhole-random servers (random health check) ---
+  sinkhole-random-1:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sinkhole-random-2:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sinkhole-random-3:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sinkhole-random-4:
+    build:
+      context: .
+      target: sinkhole
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sidecar-random-1:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9005
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - sinkhole-random-1
+    networks:
+      - backpressure
+
+  sidecar-random-2:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9006
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - sinkhole-random-2
+    networks:
+      - backpressure
+
+  sidecar-random-3:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9007
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - sinkhole-random-3
+    networks:
+      - backpressure
+
+  sidecar-random-4:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9008
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - sinkhole-random-4
+    networks:
+      - backpressure
+
+  # --- Simulated-pause servers (CPU work + random GC pauses) ---
+  simulated-pause-1:
+    build:
+      context: .
+      target: simulated-pause
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  simulated-pause-2:
+    build:
+      context: .
+      target: simulated-pause
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  simulated-pause-3:
+    build:
+      context: .
+      target: simulated-pause
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  simulated-pause-4:
+    build:
+      context: .
+      target: simulated-pause
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+    networks:
+      - backpressure
+
+  sidecar-simulated-pause-1:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9009
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - simulated-pause-1
+    networks:
+      - backpressure
+
+  sidecar-simulated-pause-2:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9010
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - simulated-pause-2
+    networks:
+      - backpressure
+
+  sidecar-simulated-pause-3:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9011
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - simulated-pause-3
+    networks:
+      - backpressure
+
+  sidecar-simulated-pause-4:
+    build:
+      context: .
+      target: sidecar
+    expose:
+      - "9100"
+    environment:
+      - LB_HOST=lb
+      - LB_PORT=9012
+      - HEALTH_CHECKS=random
+    depends_on:
+      - lb
+      - simulated-pause-4
     networks:
       - backpressure
 
@@ -31,8 +371,11 @@ services:
     environment:
       - GENERATOR_HOST=generator
       - GENERATOR_PORT=8080
+      - LB_HOST=lb
+      - LB_PORT=8080
       - WEB_PORT=3001
     depends_on:
       - generator
+      - lb
     networks:
       - backpressure

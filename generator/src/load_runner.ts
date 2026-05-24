@@ -37,14 +37,17 @@ export class LoadRunner {
    * Requests are dispatched at the target rate without waiting for responses.
    * After all requests are dispatched, waits for in-flight responses to complete.
    *
+   * @param sharedMetrics - optional external Metrics instance for live progress reporting
+   * @param onStart - optional callback invoked once metrics.start() has been called
    * @returns a MetricsResult with snapshot and raw latencies
    */
-  async run(): Promise<MetricsResult> {
+  async run(sharedMetrics?: Metrics, onStart?: () => void): Promise<MetricsResult> {
     const { rps, durationSec, uri } = this.config;
-    const metrics = new Metrics();
+    const metrics = sharedMetrics ?? new Metrics();
     const inFlight: Promise<void>[] = [];
 
     metrics.start();
+    onStart?.();
     const limiter = new RateLimiter(rps, durationSec);
 
     await limiter.start(() => {

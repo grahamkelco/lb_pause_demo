@@ -84,3 +84,38 @@ export function loadSidecarConfig(filePath: string): SidecarConfig {
     healthChecks: healthChecksRaw as string[],
   };
 }
+
+/**
+ * Loads sidecar configuration from environment variables.
+ * Requires LB_HOST and LB_PORT; other values have sensible defaults.
+ * @returns A validated SidecarConfig.
+ */
+export function loadSidecarConfigFromEnv(): SidecarConfig {
+  const lbHost = process.env["LB_HOST"];
+  if (!lbHost || lbHost.length === 0) {
+    throw new Error("LB_HOST environment variable is required");
+  }
+
+  const lbPortStr = process.env["LB_PORT"];
+  if (!lbPortStr) {
+    throw new Error("LB_PORT environment variable is required");
+  }
+  const lbPort = parseInt(lbPortStr, 10);
+  if (!Number.isInteger(lbPort)) {
+    throw new Error("LB_PORT must be an integer");
+  }
+
+  const checkIntervalMs = parseInt(
+    process.env["CHECK_INTERVAL_MS"] ?? String(DEFAULT_CHECK_INTERVAL_MS),
+    10,
+  );
+  const metricsPort = parseInt(
+    process.env["METRICS_PORT"] ?? String(DEFAULT_METRICS_PORT),
+    10,
+  );
+
+  const healthChecksStr = process.env["HEALTH_CHECKS"] ?? "always_healthy";
+  const healthChecks = healthChecksStr.split(",").map((s) => s.trim());
+
+  return { lbHost, lbPort, checkIntervalMs, metricsPort, healthChecks };
+}

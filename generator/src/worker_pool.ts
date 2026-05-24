@@ -21,11 +21,13 @@ export class WorkerPool {
    * Executes a load test according to the given configuration.
    *
    * @param config - the full load test configuration
+   * @param liveMetrics - optional shared Metrics instance for live progress reporting
+   * @param onStart - optional callback invoked once metrics.start() has been called
    * @returns a merged MetricsSnapshot from all workers
    */
-  async run(config: LoadTestConfig): Promise<MetricsSnapshot> {
+  async run(config: LoadTestConfig, liveMetrics?: Metrics, onStart?: () => void): Promise<MetricsSnapshot> {
     if (config.threads === 1) {
-      return this.runSingleThread(config);
+      return this.runSingleThread(config, liveMetrics, onStart);
     }
     return this.runMultiThread(config);
   }
@@ -34,15 +36,17 @@ export class WorkerPool {
    * Runs the load test directly on the main thread.
    *
    * @param config - the load test configuration
+   * @param liveMetrics - optional shared Metrics instance for live progress reporting
+   * @param onStart - optional callback invoked once metrics.start() has been called
    * @returns a MetricsSnapshot from the single runner
    */
-  private async runSingleThread(config: LoadTestConfig): Promise<MetricsSnapshot> {
+  private async runSingleThread(config: LoadTestConfig, liveMetrics?: Metrics, onStart?: () => void): Promise<MetricsSnapshot> {
     const runner = new LoadRunner({
       rps: config.rps,
       durationSec: config.durationSec,
       uri: config.uri,
     });
-    const result = await runner.run();
+    const result = await runner.run(liveMetrics, onStart);
     return result.snapshot;
   }
 

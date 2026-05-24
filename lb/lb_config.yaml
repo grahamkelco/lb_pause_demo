@@ -2,9 +2,51 @@ listen:
   port: 8080
 
 servers:
-  - host: localhost
-    port: 3001
+  - host: sinkhole-1
+    port: 8080
     sidecar_port: 9001
-  - host: localhost
-    port: 3002
+    type: sinkhole
+  - host: sinkhole-2
+    port: 8080
     sidecar_port: 9002
+    type: sinkhole
+  - host: sinkhole-3
+    port: 8080
+    sidecar_port: 9003
+    type: sinkhole
+  - host: sinkhole-4
+    port: 8080
+    sidecar_port: 9004
+    type: sinkhole
+  - host: sinkhole-random-1
+    port: 8080
+    sidecar_port: 9005
+    type: sinkhole-random
+  - host: sinkhole-random-2
+    port: 8080
+    sidecar_port: 9006
+    type: sinkhole-random
+  - host: sinkhole-random-3
+    port: 8080
+    sidecar_port: 9007
+    type: sinkhole-random
+  - host: sinkhole-random-4
+    port: 8080
+    sidecar_port: 9008
+    type: sinkhole-random
+  - host: simulated-pause-1
+    port: 8080
+    sidecar_port: 9009
+    type: simulated-pause
+  - host: simulated-pause-2
+    port: 8080
+    sidecar_port: 9010
+    type: simulated-pause
+  - host: simulated-pause-3
+    port: 8080
+    sidecar_port: 9011
+    type: simulated-pause
+  - host: simulated-pause-4
+    port: 8080
+    sidecar_port: 9012
+    type: simulated-pause
