@@ -1,0 +1,16 @@
+{
+  "name": "@backpressure/sinkhole",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}
