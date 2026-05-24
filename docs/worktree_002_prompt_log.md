@@ -62,3 +62,7 @@ Everything looks good. Here's a summary of what was done:
   1. ./run.sh up — builds image and starts container                                                                                   
   2. docker ps — should show backpressure-lb                                                                                           
   3. ./run.sh down — stops cleanly
+
+# Prompt 3
+Help resolve the rebase merge confict
+
