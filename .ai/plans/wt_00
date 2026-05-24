@@ -1,0 +1,156 @@
+     Sidecar Pause-Detection & Load Balancer Drain Support
+
+     Context
+
+     The load balancer currently routes requests via round-robin with no awareness of server health beyond connection failures. When
+     servers pause (GC, GIL, etc.), requests pile up in OS queues causing cascading latency. The sidecar process detects these pauses
+     and tells the LB to stop routing traffic via DRAIN/RESUME commands over TCP.
+
+     Part 1: Load Balancer Modifications
+
+     1.1 lb/src/drain_manager.ts (NEW)
+
+     - DrainManager class with per-server drain state tracking via Map<string, DrainState>
+     - drain(server, durationMs): sets drained=true, starts auto-resume timer, clears previous timer
+     - resume(server): sets drained=false, clears timer
+     - isDrained(server): returns boolean
+     - shutdown(): clears all timers
+     - Key format: "host:port"
+
+     1.2 lb/src/sidecar_listener.ts (NEW)
+
+     - SidecarListener class — creates a net.Server for each server that has a sidecarPort
+     - Accepts TCP connections, parses newline-delimited messages
+     - Handles DRAIN:<duration_ms> → calls drainManager.drain()
+     - Handles RESUME → calls drainManager.resume()
+     - Buffer accumulation for partial reads, split on \n
+     - start() / stop() lifecycle methods
+
+     1.3 lb/src/router.ts (MODIFY)
+
+     - Constructor accepts optional DrainManager
+     - next() return type: ServerConfig | null
+     - Tries up to servers.length positions, skipping drained servers
+     - Returns null when all servers drained (index still advances for fairness)
+
+     1.4 lb/src/proxy_server.ts (MODIFY)
+
+     - handleRequest: if router.next() returns null, respond 503 Service Unavailable
+
+     1.5 lb/src/main.ts (MODIFY)
+
+     - Create DrainManager, pass to RoundRobinRouter
+     - Create SidecarListener, start/stop alongside proxy server
+
+     1.6 lb/src/index.ts (MODIFY)
+
+     - Add re-exports for DrainManager, SidecarListener
+
+     1.7 Tests
+
+     - lb/src/__tests__/drain_manager.test.ts — drain/resume, auto-resume timer, re-drain resets timer
+     - lb/src/__tests__/sidecar_listener.test.ts — TCP integration test with mock client
+     - Update lb/src/__tests__/router.test.ts — skip drained servers, null when all drained
+     - Update lb/src/__tests__/proxy_server.test.ts — 503 when no servers available
+
+     ---
+     Part 2: Sidecar Process (lb/sidecar/src/)
+
+     2.1 health_check.ts (NEW) — Interface
+
+     interface HealthCheck {
+       isHealthy(): boolean;
+       getDrainInterval(): number;  // ms, default 200
+     }
+
+     2.2 always_healthy.ts (NEW)
+
+     - AlwaysHealthy implements HealthCheck
+     - isHealthy() → true
+     - getDrainInterval() → 200
+
+     2.3 health_check_runner.ts (NEW)
+
+     - HealthCheckRunner extends EventEmitter
+     - Runs all checks on a setInterval (default 1ms)
+     - healthy: all checks pass; drainInterval: max of all getDrainInterval()
+     - Emits stateChange event on healthy↔unhealthy transitions
+
+     2.4 lb_connection.ts (NEW)
+
+     - LbConnection class — TCP client to load balancer
+     - connect() / disconnect() lifecycle
+     - sendDrain(durationMs): writes DRAIN:<ms>\n
+     - sendResume(): writes RESUME\n
+     - Auto-reconnect on connection loss with capped exponential backoff
+
+     2.5 config.ts (NEW)
+
+     - SidecarConfig: lbHost, lbPort, checkIntervalMs (default 1), metricsPort, healthChecks: string[]
+     - loadSidecarConfig(filePath) — YAML parsing + validation
+
+     2.6 metrics_server.ts (NEW)
+
+     - Simple HTTP server on metricsPort
+     - GET /metrics returns OpenTelemetry text format:
+     # HELP sidecar_server_healthy Whether the monitored server is healthy
+     # TYPE sidecar_server_healthy gauge
+     sidecar_server_healthy 1
+
+     2.7 health_check_factory.ts (NEW)
+
+     - createHealthChecks(names: string[]): HealthCheck[]
+     - Maps "always_healthy" → new AlwaysHealthy()
+     - Throws on unknown names (extensible for future checks)
+
+     2.8 sidecar.ts (NEW) — Orchestrator
+
+     - Sidecar class wires together runner, connection, metrics server
+     - Redundant send loop: sends DRAIN or RESUME every drainInterval / 2 (minimum 50ms)
+     - Also sends immediately on state change
+     - start() / stop() lifecycle
+
+     2.9 main.ts (NEW) — Entry point
+
+     - Loads config from CLI arg / SIDECAR_CONFIG_PATH env / default
+     - Creates health checks via factory
+     - Creates and starts Sidecar
+     - Graceful shutdown on SIGINT/SIGTERM
+
+     2.10 index.ts (NEW) — Re-exports
+
+     2.11 package.json (MODIFY)
+
+     - Add js-yaml, @types/js-yaml, @types/node dependencies
+
+     2.12 Tests
+
+     - always_healthy.test.ts
+     - health_check_runner.test.ts — state transitions, drainInterval calculation
+     - lb_connection.test.ts — mock TCP server integration
+
+     ---
+     Implementation Order
+
+     1. DrainManager + tests
+     2. Modify RoundRobinRouter + update tests
+     3. Modify ProxyServer for 503 + update tests
+     4. SidecarListener + tests
+     5. Wire LB main.ts
+     6. Sidecar HealthCheck interface + AlwaysHealthy + tests
+     7. HealthCheckRunner + tests
+     8. LbConnection + tests
+     9. Sidecar config.ts, metrics_server.ts, health_check_factory.ts
+     10. Sidecar orchestrator + main.ts + index.ts
+     11. Update sidecar package.json
+
+     Verification
+
+     1. ./run.sh build lb — confirm LB compiles
+     2. ./run.sh test lb — all existing + new tests pass
+     3. ./run.sh lint lb — no lint errors
+     4. ./run.sh build sidecar — confirm sidecar compiles
+     5. ./run.sh test sidecar — all new tests pass
+     6. ./run.sh lint sidecar — no lint errors
+     7. Manual: start LB, connect with netcat to sidecarPort, send DRAIN:500\n, verify requests get 503; send RESUME\n, verify routing
+     resumes

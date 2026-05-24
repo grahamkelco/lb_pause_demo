@@ -8,6 +8,13 @@
     "build": "tsc",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9"
   }
 }
