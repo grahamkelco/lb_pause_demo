@@ -53,6 +53,10 @@ docs/             Documentation
 .ai/plans/        Project plans
 ```
 
+## Design Document
+
+For a detailed technical discussion of the backpressure mechanism, scaling considerations, server architecture impact analysis, and future work, see [DESIGN.md](DESIGN.md).
+
 ## Development
 
 This is a TypeScript monorepo using npm workspaces. All packages share a common TypeScript configuration (`tsconfig.base.json`) and ESLint setup (`eslint.config.mjs`).
