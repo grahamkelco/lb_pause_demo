@@ -37,3 +37,16 @@ some point we might want to play with a large pool size. We will also need the s
 ## Response
 See .ai/plans/wt_003_prompt_002_plan.md for plan mode output.
 
+# Prompt 3
+The nanoTime spin is going to do a lot of syscalls. Thats interesting and not totally unrealistic but lets do some pure java work       
+  inside of the spin. i.e. lets check the nanoTime but do some heavy compute work inside it. Ideally lets call a JDK method or something   
+  so we can ensure we have safepoints inside the method so we don't risk accidently cuasing high time to safepoint by not actually having  
+  a safepoint in out tight inner loop. And lets make sure the resumt is used somewhere so the JVM cant easily optimzie out loop away.
+
+## Response
+Builds cleanly. The key changes:      
+                                                                                                                                           
+  - MessageDigest.digest() (SHA-256) replaces the raw arithmetic loop — it's a real JDK method call with natural safepoint opportunities on
+   entry/exit, so G1GC can pause threads promptly
+  - The previous checksum is fed back into the input block each iteration, creating a data dependency chain the JIT can't eliminate        
+  - The checksum is still returned and included in the /query response body, preventing dead-code elimination 
