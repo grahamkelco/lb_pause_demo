@@ -12,7 +12,7 @@ Usage: ./run.sh <command> [options]
 Commands:
   up              Bring up Docker containers (starts Docker if needed)
   down            Bring down Docker containers
-  build <target>  Build the specified package (lb, sidecar, generator, web, sinkhole)
+  build <target>  Build the specified package (lb, sidecar, generator, web, sinkhole, java-gc)
   lint <target>   Run the linter on the specified package
   test <target>   Run unit tests for the specified package
   help            Show this help message
@@ -23,6 +23,7 @@ Targets:
   generator  Load generator
   web        Web UI server
   sinkhole   Sinkhole service
+  java-gc    Java GC pause simulator
 
 Examples:
   ./run.sh up
@@ -43,9 +44,10 @@ resolvePackage() {
     generator) echo "@backpressure/generator" ;;
     web)       echo "@backpressure/web" ;;
     sinkhole)  echo "@backpressure/sinkhole" ;;
+    java-gc)   echo "java-gc" ;;
     *)
       echo "Error: Unknown target '$target'." >&2
-      echo "Valid targets: lb, sidecar, generator, web, sinkhole" >&2
+      echo "Valid targets: lb, sidecar, generator, web, sinkhole, java-gc" >&2
       exit 1
       ;;
   esac
@@ -94,6 +96,11 @@ cmdDown() {
 cmdBuild() {
   local pkg
   pkg=$(resolvePackage "${1:-}")
+  if [[ "$pkg" == "java-gc" ]]; then
+    echo "Building java-gc..."
+    (cd "$SCRIPT_DIR/services/java_gc" && ./gradlew build)
+    return
+  fi
   echo "Building $pkg..."
   npm run build -w "$pkg"
 }
@@ -103,6 +110,10 @@ cmdBuild() {
 cmdLint() {
   local pkg
   pkg=$(resolvePackage "${1:-}")
+  if [[ "$pkg" == "java-gc" ]]; then
+    echo "Linting java-gc... (no-op)"
+    return
+  fi
   echo "Linting $pkg..."
   npm run lint -w "$pkg"
 }
@@ -112,6 +123,11 @@ cmdLint() {
 cmdTest() {
   local pkg
   pkg=$(resolvePackage "${1:-}")
+  if [[ "$pkg" == "java-gc" ]]; then
+    echo "Testing java-gc..."
+    (cd "$SCRIPT_DIR/services/java_gc" && ./gradlew test)
+    return
+  fi
   echo "Testing $pkg..."
   npm run test -w "$pkg"
 }
