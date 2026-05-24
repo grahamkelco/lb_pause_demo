@@ -12,3 +12,27 @@ services:
       - "8080:8080"
     networks:
       - backpressure
+
+  generator:
+    build:
+      context: .
+      target: generator
+    expose:
+      - "8080"
+    networks:
+      - backpressure
+
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "3002:3001"
+    environment:
+      - GENERATOR_HOST=generator
+      - GENERATOR_PORT=8080
+      - WEB_PORT=3001
+    depends_on:
+      - generator
+    networks:
+      - backpressure

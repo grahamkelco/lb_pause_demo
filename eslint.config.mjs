@@ -7,11 +7,16 @@ export default [
     ignores: ["**/dist/**", "**/node_modules/**"],
   },
   {
-    files: ["**/*.ts"],
+    files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
-        projectService: true,
+        project: [
+          "./tsconfig.base.json",
+          "./*/tsconfig.json",
+          "./*/tsconfig.client.json",
+          "./services/*/tsconfig.json",
+        ],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -23,7 +28,7 @@ export default [
       // Enforce snake_case filenames
       "check-file/filename-naming-convention": [
         "error",
-        { "**/*.ts": "SNAKE_CASE" },
+        { "**/*.ts": "SNAKE_CASE", "**/*.tsx": "SNAKE_CASE" },
         { ignoreMiddleExtensions: true },
       ],
 
@@ -39,8 +44,12 @@ export default [
           format: ["PascalCase"],
         },
         {
+          selector: "function",
+          format: ["camelCase", "PascalCase"],
+        },
+        {
           selector: "variable",
-          format: ["camelCase", "UPPER_CASE"],
+          format: ["camelCase", "UPPER_CASE", "PascalCase"],
         },
         {
           selector: "parameter",
@@ -50,6 +59,11 @@ export default [
         {
           selector: "enumMember",
           format: ["PascalCase", "UPPER_CASE"],
+        },
+        {
+          selector: "objectLiteralProperty",
+          format: null,
+          modifiers: ["requiresQuotes"],
         },
       ],
 

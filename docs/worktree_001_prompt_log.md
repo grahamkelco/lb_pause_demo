@@ -149,3 +149,106 @@ All clean. Build passes, lint passes, 31 tests pass (including the new exact-per
   - Tests — Updated load_runner.test.ts to use .snapshot, updated metrics.test.ts merge tests to pass
   MetricsResult, added a new test that verifies exact percentiles across two workers with disjoint latency
   ranges.
+
+# Prompt 7 (Plan Mode)
+We want to build the web server and UI layer of the project now. This hsould live in the web/ directory. We   
+want the webserver to be able to act as a metrics scraper for a number of other services that we will be        
+running. It should read the services /metrics endpoint to collect metrics in OpenTelemetry format. In the UI we 
+ want to display these metrics on graphs that update in near-realtime (2s refresh rate). In the UI we want to   
+have a section for managing simulations. This should allow for setting the requests per second, and the         
+duration. Later when our backend server options are more plentiful we will add the ability to change the server 
+ type we are sending traffic to. Therefore this section of knobs will expand over time. We will need to display 
+ the metrics exported from each service. In graphs below.
+
+## Response
+See .ai/plans/wt_001_prompt_007_plan.md for plan mode output.
+
+Everything passes. Here's a summary of what was implemented:
+                                                                                                                
+  Summary                                                                                                       
+  
+  Phase 1 - Scaffolding:                                                                                        
+  - Updated web/package.json with Express, React, Recharts deps and new build scripts                         
+  - Updated web/tsconfig.json to include only server files                                                      
+  - Created web/tsconfig.client.json for React/JSX/DOM support                                                
+  - Created web/vite.config.ts with client root, build output, API proxy, and vitest config                     
+  - Created src/client/index.html entry point                                                                   
+  - Updated eslint.config.mjs for .tsx support, PascalCase functions, and quoted property names                 
+                                                                                                                
+  Phase 2 - Backend scraping core:                                                                              
+  - src/server/config.ts — ServerConfig, ServiceTarget types, env-based loadConfig()                            
+  - src/server/scraper/types.ts — ParsedMetrics, TimestampedMetrics, ServiceTimeSeries, ServiceStatus           
+  - src/server/scraper/metrics_parser.ts — Parses OTel text format into Record<string, number>                  
+  - src/server/scraper/metrics_store.ts — Rolling-window in-memory time-series store                            
+  - src/server/scraper/metrics_scraper.ts — Periodic fetch from configured targets                              
+                                                                                                                
+  Phase 3 - API routes:                                                                                         
+  - src/server/routes/metrics_routes.ts — GET /api/metrics, GET /api/metrics/:service                           
+  - src/server/routes/simulation_routes.ts — POST /api/simulation/run (proxies to generator)                    
+  - src/server/routes/services_routes.ts — GET /api/services                                                  
+  - src/server/app.ts — Express app factory with static file serving and SPA fallback                           
+  - src/server/main.ts — Entry point                                                                          
+  - src/server/index.ts — Re-exports                                                                            
+                                                                                                              
+  Phase 4 - Frontend:                                                                                           
+  - src/client/types.ts — Client-side type mirrors                                                            
+  - src/client/styles/global.css — Dark theme styling                                                           
+  - Hooks: use_metrics.ts (2s polling), use_simulation.ts, use_services.ts                                    
+  - Components: simulation_controls.tsx, latency_chart.tsx, throughput_chart.tsx, service_selector.tsx,         
+  status_indicator.tsx                                                                                          
+  - src/client/app.tsx + src/client/main.tsx — Root layout and React mount                                      
+                                                                                                                
+  Phase 5 - Verification:                                                                                       
+  - ./run.sh build web — Vite + tsc both succeed                                                              
+  - ./run.sh lint web — No lint errors                                                                          
+  - ./run.sh test web — 10 tests pass (parser + store)
+
+# Prompt 8
+We now want to update our Docker config such that the web server comes up when we run `run.sh up`. The        
+`run.sh up` command should also output for the user how to access the web UI (i.e. localhost:<port>). We also   
+want to include the load generator in server mode inside the docker config.
+
+## Response
+Everything is working. Here's a summary of what was created/changed:
+
+  Summary
+
+  New files:
+  - Dockerfile — Multi-stage build with shared base stage (installs deps), separate build stages for generator
+  and web, and lean runtime stages (node:22-slim)
+  - docker-compose.yml — Two services: generator (internal only, port 8080) and web (exposed on host port 3001,
+  depends on generator). The web container is configured to reach the generator via Docker's internal DNS
+  (GENERATOR_HOST=generator)
+  - .dockerignore — Excludes node_modules, dist, .git, .ai, *.md
+
+  Modified files:
+  - run.sh — cmdUp() removes the "not yet created" guard, adds --build flag to ensure images are up-to-date, and
+   prints the Web UI and Generator API URLs after containers start
+
+  Key design decisions:
+  - Generator port 8080 is only exposed internally (expose, not ports) since the web server proxies all access —
+   the user only needs localhost:3001
+  - --build flag on docker compose up ensures source changes are always picked up
+  - The web container uses Docker's service discovery (GENERATOR_HOST=generator) to reach the generator
+
+# Prompt 9
+I got this message when running `run.sh up`  Error response from daemon: failed to set up container           
+networking: driver failed programming external connectivity on endpoint anthropic_take_home-web-1               
+(09c2ad0245e4d306e40e9b56e46c61ea13d5672e31d38fe5857a8f819730cb23): Bind for 0.0.0.0:3001 failed: port is       
+already allocated  
+
+## Response
+An SSH tunnel (PID 90217) is listening on port 3001. You can either:
+
+  1. Kill that process: kill 90217, then re-run ./run.sh up
+  2. Use a different host port — I can change the docker-compose mapping so the web container maps to a
+  different host port (e.g., 3002) while still using 3001 internally.
+
+  Which would you prefer?
+
+# Prompt 10
+LEts use another port
+
+## Response
+Everything is working — the web server is up on port 3002, and it's successfully scraping the generator
+  (showing healthy: true).

@@ -82,6 +82,9 @@ ensureDocker() {
 cmdUp() {
   ensureDocker
   docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d --build
+  echo ""
+  echo "Services are running:"
+  echo "  Web UI:         http://localhost:3002"
 }
 
 ## Brings down all Docker containers.
