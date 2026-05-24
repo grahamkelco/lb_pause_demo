@@ -35,13 +35,14 @@ describe("LoadRunner", () => {
       uri: `http://localhost:${String(port)}`,
     });
 
-    const snapshot = await runner.run();
+    const result = await runner.run();
 
-    expect(snapshot.totalRequests).toBe(rps * durationSec);
-    expect(snapshot.successCount).toBe(rps * durationSec);
-    expect(snapshot.errorCount).toBe(0);
-    expect(snapshot.p50).toBeGreaterThan(0);
-    expect(snapshot.mean).toBeGreaterThan(0);
+    expect(result.snapshot.totalRequests).toBe(rps * durationSec);
+    expect(result.snapshot.successCount).toBe(rps * durationSec);
+    expect(result.snapshot.errorCount).toBe(0);
+    expect(result.snapshot.p50).toBeGreaterThan(0);
+    expect(result.snapshot.mean).toBeGreaterThan(0);
+    expect(result.latencies).toHaveLength(rps * durationSec);
   });
 
   it("records errors for unreachable targets", async () => {
@@ -51,8 +52,8 @@ describe("LoadRunner", () => {
       uri: "http://localhost:1",
     });
 
-    const snapshot = await runner.run();
-    expect(snapshot.totalRequests).toBe(5);
-    expect(snapshot.errorCount).toBe(5);
+    const result = await runner.run();
+    expect(result.snapshot.totalRequests).toBe(5);
+    expect(result.snapshot.errorCount).toBe(5);
   });
 });

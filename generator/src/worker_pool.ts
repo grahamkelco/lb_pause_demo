@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import type { LoadTestConfig } from "./config.js";
 import { LoadRunner, type RunnerConfig } from "./load_runner.js";
-import { Metrics, type MetricsSnapshot } from "./metrics.js";
+import { Metrics, type MetricsResult, type MetricsSnapshot } from "./metrics.js";
 
 const WORKER_ENTRY_PATH = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -42,7 +42,8 @@ export class WorkerPool {
       durationSec: config.durationSec,
       uri: config.uri,
     });
-    return runner.run();
+    const result = await runner.run();
+    return result.snapshot;
   }
 
   /**
@@ -57,7 +58,7 @@ export class WorkerPool {
     const baseRps = Math.floor(rps / threads);
     const remainder = rps % threads;
 
-    const workerPromises: Promise<MetricsSnapshot>[] = [];
+    const workerPromises: Promise<MetricsResult>[] = [];
 
     for (let i = 0; i < threads; i++) {
       const workerRps = i === 0 ? baseRps + remainder : baseRps;
@@ -65,22 +66,22 @@ export class WorkerPool {
       workerPromises.push(this.spawnWorker(workerConfig));
     }
 
-    const snapshots = await Promise.all(workerPromises);
-    return Metrics.merge(snapshots);
+    const results = await Promise.all(workerPromises);
+    return Metrics.merge(results);
   }
 
   /**
-   * Spawns a single worker thread and returns its MetricsSnapshot result.
+   * Spawns a single worker thread and returns its MetricsResult.
    *
    * @param config - the runner configuration for this worker
-   * @returns a promise that resolves to the worker's MetricsSnapshot
+   * @returns a promise that resolves to the worker's MetricsResult
    */
-  private spawnWorker(config: RunnerConfig): Promise<MetricsSnapshot> {
+  private spawnWorker(config: RunnerConfig): Promise<MetricsResult> {
     return new Promise((resolve, reject) => {
       const worker = new Worker(WORKER_ENTRY_PATH, { workerData: config });
 
-      worker.on("message", (snapshot: MetricsSnapshot) => {
-        resolve(snapshot);
+      worker.on("message", (result: MetricsResult) => {
+        resolve(result);
       });
 
       worker.on("error", reject);

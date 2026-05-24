@@ -1,4 +1,4 @@
-import { Metrics, type MetricsSnapshot } from "./metrics.js";
+import { Metrics, type MetricsResult } from "./metrics.js";
 import { RateLimiter } from "./rate_limiter.js";
 
 /**
@@ -37,9 +37,9 @@ export class LoadRunner {
    * Requests are dispatched at the target rate without waiting for responses.
    * After all requests are dispatched, waits for in-flight responses to complete.
    *
-   * @returns a MetricsSnapshot summarizing the run
+   * @returns a MetricsResult with snapshot and raw latencies
    */
-  async run(): Promise<MetricsSnapshot> {
+  async run(): Promise<MetricsResult> {
     const { rps, durationSec, uri } = this.config;
     const metrics = new Metrics();
     const inFlight: Promise<void>[] = [];
@@ -55,7 +55,7 @@ export class LoadRunner {
     // Wait for all in-flight requests to complete
     await Promise.allSettled(inFlight);
 
-    return metrics.snapshot();
+    return metrics.result();
   }
 
   /**

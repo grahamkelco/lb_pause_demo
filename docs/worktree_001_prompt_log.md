@@ -124,3 +124,28 @@ similar).
 Done. The README covers the generator overview, CLI and server mode usage, all flags, and includes a quick
   smoke test using an inline Node.js sink server that discards traffic.
 
+# Prompt 5
+/review
+
+## Response
+See .ai/plans/wt_001_prompt_005_review.md
+
+# Prompt 6
+Lets fix the approxPercentile bug.
+
+## Response
+All clean. Build passes, lint passes, 31 tests pass (including the new exact-percentile merge test).
+
+  Summary of changes:
+
+  - metrics.ts — Added MetricsResult type (pairs MetricsSnapshot + raw latencies: number[]). Added result()
+  method to Metrics. Rewrote Metrics.merge() to accept MetricsResult[], concatenate raw latencies, sort the
+  combined array, and compute exact percentiles. Removed approxPercentile.
+  - load_runner.ts — run() now returns MetricsResult instead of MetricsSnapshot.
+  - worker_entry.ts — Posts MetricsResult to parent.
+  - worker_pool.ts — Collects MetricsResult[] from workers, passes to Metrics.merge(). Single-thread path
+  extracts .snapshot from the result.
+  - index.ts — Exports new MetricsResult type.
+  - Tests — Updated load_runner.test.ts to use .snapshot, updated metrics.test.ts merge tests to pass
+  MetricsResult, added a new test that verifies exact percentiles across two workers with disjoint latency
+  ranges.

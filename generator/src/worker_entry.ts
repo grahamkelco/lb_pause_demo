@@ -5,7 +5,7 @@ import { LoadRunner, type RunnerConfig } from "./load_runner.js";
  * Worker thread entry point.
  *
  * Receives a RunnerConfig via workerData, executes the load test,
- * and posts the MetricsSnapshot result back to the parent thread.
+ * and posts the MetricsResult back to the parent thread.
  */
 async function main(): Promise<void> {
   if (!parentPort) {
@@ -14,8 +14,8 @@ async function main(): Promise<void> {
 
   const config = workerData as RunnerConfig;
   const runner = new LoadRunner(config);
-  const snapshot = await runner.run();
-  parentPort.postMessage(snapshot);
+  const result = await runner.run();
+  parentPort.postMessage(result);
 }
 
 void main();

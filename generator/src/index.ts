@@ -1,6 +1,6 @@
 export type { LoadTestConfig, RawConfig } from "./config.js";
 export { parseConfig, configFromQueryParams } from "./config.js";
-export type { MetricsSnapshot } from "./metrics.js";
+export type { MetricsSnapshot, MetricsResult } from "./metrics.js";
 export { Metrics } from "./metrics.js";
 export { RateLimiter } from "./rate_limiter.js";
 export { LoadRunner } from "./load_runner.js";
