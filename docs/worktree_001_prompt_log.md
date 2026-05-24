@@ -28,7 +28,7 @@ Read .ai/plans/PROJECT.md for background on the project we are building.
   What would you like to work on first? 
 
 
-  # Prompt 2
+  # Prompt 2 (Plan Mode)
   We first need to establish the basics of the new project layout. We should set up a CLAUDE.md file to help    
 you navigate the project. It should contain a directory map of the project as well as our coding standards. We  
 also want to implement a basic README.md file for others to understand the project purpose and structure. We    
@@ -65,3 +65,62 @@ Everything works as expected:
   - run.sh — subcommand runner: up/down/build/lint/test/help (functionized with comments)                       
   - CLAUDE.md — project guide with directory map, coding standards, commands                                    
   - README.md — project overview with architecture, setup, and usage    
+
+
+# Prompt 3 (Plan Mode)
+We want to build a typescript based load generator. It should take in a requests per second (rps) argument, a 
+ duration, and a URI to send HTTP GET traffic to. It should also take an optional threads argument to control   
+the threading of the generator however if not specified the concurrency should be auto determined. See          
+.ai/plans/PROJECT.md for additional project details.
+
+## Response
+See .ai/plans/wt_001_prompt_003.md for plan mode output.
+
+Everything is clean. Here's a summary of what was built:                                                    
+                                                                                                                
+  Load Generator — Complete                                                                                     
+                                                                                                              
+  10 source files in generator/src/:                                                                            
+                                                                                                              
+  ┌──────────────────────┬───────────────────────────────────────────────────────────────────────────────────┐  
+  │         File         │                                      Purpose                                      │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ config.ts            │ LoadTestConfig type, validation, auto-thread calculation, query param parsing     │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ metrics.ts           │ Latency recording, percentile computation (p50/p90/p99/p999), cross-worker        │  
+  │                      │ merging                                                                           │  
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤  
+  │ rate_limiter.ts      │ Drift-compensating interval scheduler anchored to absolute start time             │  
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ load_runner.ts       │ Single-thread orchestration: RateLimiter + fetch + Metrics (fire-and-forget)      │  
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ worker_pool.ts       │ Distributes RPS across worker_threads, merges results                             │  
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ worker_entry.ts      │ Worker thread entry point                                                         │  
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ metrics_formatter.ts │ OpenTelemetry text exposition format output                                       │  
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
+  │ server.ts            │ HTTP server mode (/run, /metrics, /health endpoints)                              │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤  
+  │ cli.ts               │ CLI entry point with --rps, --duration, --uri, --threads, --server flags          │
+  ├──────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤  
+  │ index.ts             │ Re-exports only                                                                   │
+  └──────────────────────┴───────────────────────────────────────────────────────────────────────────────────┘  
+                                                                                                              
+  6 test files — 30 tests, all passing.                                                                         
+                                                                                                              
+  Key design choices:                                                                                           
+  - Zero runtime dependencies — all Node.js built-ins (fetch, parseArgs, worker_threads, node:http)
+  - Auto-threads: min(cpuCount, ceil(rps / 500)) when not specified                                             
+  - Fire-and-forget requests maintain target RPS regardless of server latency                                 
+  - Single-thread mode (threads=1) skips worker overhead 
+
+# Prompt 4
+Please add a README.md file in generator/ that provides a high level overview of the generator and how to use 
+ it. Also include a basic test command to run the generator while sinkholding traffic locally to /dev/null (or  
+similar).
+
+## Response
+Done. The README covers the generator overview, CLI and server mode usage, all flags, and includes a quick
+  smoke test using an inline Node.js sink server that discards traffic.
+

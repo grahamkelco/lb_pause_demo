@@ -4,10 +4,16 @@
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
+  "bin": {
+    "generator": "./dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1"
   }
 }
