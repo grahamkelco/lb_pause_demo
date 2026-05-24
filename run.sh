@@ -79,11 +79,7 @@ ensureDocker() {
 ## Brings up all Docker containers defined in docker-compose.yml.
 cmdUp() {
   ensureDocker
-  if [[ ! -f "$SCRIPT_DIR/docker-compose.yml" ]]; then
-    echo "Error: docker-compose.yml not found. It will be created in a later phase." >&2
-    exit 1
-  fi
-  docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d
+  docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d --build
 }
 
 ## Brings down all Docker containers.
