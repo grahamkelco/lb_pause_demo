@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { configFromQueryParams } from "./config.js";
-import type { MetricsSnapshot } from "./metrics.js";
+import { Metrics, type MetricsSnapshot } from "./metrics.js";
 import { formatMetrics } from "./metrics_formatter.js";
 import { WorkerPool } from "./worker_pool.js";
 
@@ -17,6 +17,7 @@ export class GeneratorServer {
   private readonly pool = new WorkerPool();
   private isRunning = false;
   private lastResult: MetricsSnapshot | null = null;
+  private liveMetrics: Metrics | null = null;
 
   /**
    * Starts the HTTP server on the given port.
@@ -85,8 +86,11 @@ export class GeneratorServer {
     }
 
     this.isRunning = true;
+    const liveMetrics = new Metrics();
     try {
-      const result = await this.pool.run(config);
+      const result = await this.pool.run(config, liveMetrics, () => {
+        this.liveMetrics = liveMetrics;
+      });
       this.lastResult = result;
       sendJson(res, 200, result);
     } catch (err) {
@@ -94,6 +98,7 @@ export class GeneratorServer {
       sendJson(res, 500, { error: message });
     } finally {
       this.isRunning = false;
+      this.liveMetrics = null;
     }
   }
 
@@ -103,14 +108,15 @@ export class GeneratorServer {
    * @param res - the server response
    */
   private handleMetrics(res: ServerResponse): void {
-    if (!this.lastResult) {
+    const snapshot = this.liveMetrics?.snapshot() ?? this.lastResult;
+    if (!snapshot) {
       res.writeHead(204);
       res.end();
       return;
     }
 
     res.writeHead(200, { [CONTENT_TYPE]: "text/plain; charset=utf-8" });
-    res.end(formatMetrics(this.lastResult));
+    res.end(formatMetrics(snapshot));
   }
 
   /**

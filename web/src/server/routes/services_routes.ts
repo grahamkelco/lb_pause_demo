@@ -1,13 +1,18 @@
 import { Router } from "express";
 import type { MetricsScraper } from "../scraper/metrics_scraper.js";
+import type { ServiceTarget } from "../config.js";
 
 /**
  * Creates an Express router for service status endpoints.
  *
  * @param scraper - the metrics scraper to query for service statuses
- * @returns an Express router handling /api/services routes
+ * @param lbTarget - the load balancer target for proxying admin API calls
+ * @returns an Express router handling /api/services and /api/servers routes
  */
-export function createServicesRoutes(scraper: MetricsScraper): Router {
+export function createServicesRoutes(
+  scraper: MetricsScraper,
+  lbTarget: ServiceTarget,
+): Router {
   const router = Router();
 
   /**
@@ -15,6 +20,65 @@ export function createServicesRoutes(scraper: MetricsScraper): Router {
    */
   router.get("/", (_req, res) => {
     res.json(scraper.getStatuses());
+  });
+
+  /**
+   * GET /api/servers - Proxies to LB admin API for server group info.
+   */
+  router.get("/servers", (_req, res) => {
+    const url = `http://${lbTarget.host}:${String(lbTarget.port)}/admin/servers`;
+
+    void (async () => {
+      try {
+        const lbRes = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const data: unknown = await lbRes.json();
+        res.status(lbRes.status).json(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to reach LB";
+        res.status(502).json({ error: message });
+      }
+    })();
+  });
+
+  /**
+   * GET /api/services/backpressure - Returns current backpressure state.
+   */
+  router.get("/backpressure", (_req, res) => {
+    const url = `http://${lbTarget.host}:${String(lbTarget.port)}/admin/backpressure`;
+
+    void (async () => {
+      try {
+        const lbRes = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const data: unknown = await lbRes.json();
+        res.status(lbRes.status).json(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to reach LB";
+        res.status(502).json({ error: message });
+      }
+    })();
+  });
+
+  /**
+   * POST /api/services/backpressure - Toggles backpressure on/off.
+   */
+  router.post("/backpressure", (req, res) => {
+    const url = `http://${lbTarget.host}:${String(lbTarget.port)}/admin/backpressure`;
+
+    void (async () => {
+      try {
+        const lbRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(req.body),
+          signal: AbortSignal.timeout(5000),
+        });
+        const data: unknown = await lbRes.json();
+        res.status(lbRes.status).json(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to reach LB";
+        res.status(502).json({ error: message });
+      }
+    })();
   });
 
   return router;

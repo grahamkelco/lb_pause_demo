@@ -32,10 +32,10 @@ export function createApp(
   // API routes
   const generatorTarget = config.targets.find((t) => t.name === "generator");
   if (generatorTarget) {
-    app.use("/api/simulation", createSimulationRoutes(generatorTarget));
+    app.use("/api/simulation", createSimulationRoutes(generatorTarget, config.lbTarget));
   }
   app.use("/api/metrics", createMetricsRoutes(store));
-  app.use("/api/services", createServicesRoutes(scraper));
+  app.use("/api/services", createServicesRoutes(scraper, config.lbTarget));
 
   // Serve static client files in production
   const currentDir = dirname(fileURLToPath(import.meta.url));

@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 
+import { Agent, setGlobalDispatcher } from "undici";
 import { parseArgs } from "node:util";
 import { parseConfig } from "./config.js";
 import { WorkerPool } from "./worker_pool.js";
 import { GeneratorServer } from "./server.js";
+
+const MAX_CONNECTIONS = parseInt(process.env["MAX_CONNECTIONS"] ?? "5", 10);
+setGlobalDispatcher(new Agent({ connections: MAX_CONNECTIONS, pipelining: 1 }));
 
 const USAGE = `
 Usage: generator [options]

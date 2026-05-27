@@ -11,6 +11,8 @@ export interface ServerConfig {
   readonly port: number;
   /** Optional sidecar port for future pause detection. */
   readonly sidecarPort?: number;
+  /** Optional type tag for grouping servers (e.g., "sinkhole"). */
+  readonly type?: string;
 }
 
 /**
@@ -37,6 +39,7 @@ export interface LbConfig {
 interface RawServerEntry {
   host?: unknown;
   port?: unknown;
+  type?: unknown;
   /* eslint-disable @typescript-eslint/naming-convention */
   sidecar_port?: unknown;
   /* eslint-enable @typescript-eslint/naming-convention */
@@ -56,7 +59,14 @@ function parseServerEntry(raw: RawServerEntry, index: number): ServerConfig {
     throw new Error(`servers[${index}].port must be an integer`);
   }
 
-  const config: ServerConfig = { host: raw.host, port: raw.port };
+  let config: ServerConfig = { host: raw.host, port: raw.port };
+
+  if (raw.type !== undefined) {
+    if (typeof raw.type !== "string" || raw.type.length === 0) {
+      throw new Error(`servers[${index}].type must be a non-empty string`);
+    }
+    config = { ...config, type: raw.type };
+  }
 
   if (raw.sidecar_port !== undefined) {
     if (typeof raw.sidecar_port !== "number" || !Number.isInteger(raw.sidecar_port)) {

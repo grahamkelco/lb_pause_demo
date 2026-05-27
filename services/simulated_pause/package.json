@@ -1,12 +1,9 @@
 {
-  "name": "@backpressure/generator",
+  "name": "@backpressure/simulated-pause",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
-  "bin": {
-    "generator": "./dist/cli.js"
-  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/",
@@ -14,9 +11,6 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1"
-  },
-  "dependencies": {
-    "undici": "^7.25.0"
+    "@types/node": "^22.0.0"
   }
 }

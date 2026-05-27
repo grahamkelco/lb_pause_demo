@@ -2,7 +2,7 @@ import { createSocket, type Socket } from "node:dgram";
 import type { HealthCheck } from "./health_check.js";
 
 const DEFAULT_PORT = 9200;
-const DEFAULT_HOST = "127.0.0.1";
+const DEFAULT_HOST = "0.0.0.0";
 const DEFAULT_COOLDOWN_MS = 50;
 
 /** Configuration options for {@link GcPauseCheck}. */

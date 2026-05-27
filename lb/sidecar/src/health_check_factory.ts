@@ -2,6 +2,7 @@ import type { HealthCheck } from "./health_check.js";
 import { AlwaysHealthy } from "./always_healthy.js";
 import { GcPauseCheck } from "./gc_pause_check.js";
 import { RandomFailure } from "./random_failure.js";
+import { RandomHealthCheck } from "./random_health_check.js";
 
 /**
  * Creates health check instances from a list of string names.
@@ -20,7 +21,13 @@ export function createHealthChecks(names: readonly string[]): HealthCheck[] {
       case "random_failure":
         return new RandomFailure();
       case "gc_pause":
-        return new GcPauseCheck();
+        return new GcPauseCheck({
+          port: process.env["GC_PAUSE_UDP_PORT"]
+            ? parseInt(process.env["GC_PAUSE_UDP_PORT"], 10)
+            : undefined,
+        });
+      case "random":
+        return new RandomHealthCheck();
       default:
         throw new Error(`Unknown health check: "${name}"`);
     }

@@ -86,7 +86,7 @@ cmdUp() {
   docker compose -f "$SCRIPT_DIR/docker-compose.yml" up -d --build
   echo ""
   echo "Services are running:"
-  echo "  Web UI:         http://localhost:3002"
+  echo "  Web UI:         http://localhost:3001"
 }
 
 ## Brings down all Docker containers.

@@ -1,6 +1,7 @@
 import * as http from "node:http";
 import type { ServerConfig } from "./config.js";
 import type { RoundRobinRouter } from "./router.js";
+import type { AdminHandler } from "./admin_handler.js";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -12,15 +13,18 @@ export class ProxyServer {
   private readonly server: http.Server;
   private readonly router: RoundRobinRouter;
   private readonly listenPort: number;
+  private readonly adminHandler: AdminHandler | undefined;
 
   /**
    * Creates a new ProxyServer.
    * @param router - The router used to select downstream targets.
    * @param listenPort - The port to listen on for incoming requests.
+   * @param adminHandler - Optional admin handler for /admin/ endpoints.
    */
-  constructor(router: RoundRobinRouter, listenPort: number) {
+  constructor(router: RoundRobinRouter, listenPort: number, adminHandler?: AdminHandler) {
     this.router = router;
     this.listenPort = listenPort;
+    this.adminHandler = adminHandler;
     this.server = http.createServer(
       (req: http.IncomingMessage, res: http.ServerResponse) => {
         this.handleRequest(req, res);
@@ -67,6 +71,10 @@ export class ProxyServer {
    * @param res - The outgoing HTTP response.
    */
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
+    if (this.adminHandler?.handleRequest(req, res)) {
+      return;
+    }
+
     const target = this.router.next();
     if (target === null) {
       // eslint-disable-next-line @typescript-eslint/naming-convention

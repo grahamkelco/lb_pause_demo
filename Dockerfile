@@ -9,7 +9,9 @@ COPY generator/package.json generator/
 COPY web/package.json web/
 COPY lb/package.json lb/
 COPY lb/sidecar/package.json lb/sidecar/
-RUN mkdir -p services && npm ci --ignore-scripts
+COPY services/sinkhole/package.json services/sinkhole/
+COPY services/simulated_pause/package.json services/simulated_pause/
+RUN npm ci --ignore-scripts
 
 # --- Generator build ---
 FROM base AS generator-build
@@ -20,6 +22,27 @@ RUN npm run build -w @backpressure/generator
 FROM base AS web-build
 COPY web/ web/
 RUN npm run build -w @backpressure/web
+
+# --- Sinkhole build ---
+FROM base AS sinkhole-build
+COPY services/sinkhole/ services/sinkhole/
+RUN npm run build -w @backpressure/sinkhole
+
+# --- Simulated-pause build ---
+FROM base AS simulated-pause-build
+COPY services/simulated_pause/ services/simulated_pause/
+RUN npm run build -w @backpressure/simulated-pause
+
+# --- Java GC build ---
+FROM eclipse-temurin:21-jdk-jammy AS java-gc-build
+WORKDIR /app
+COPY services/java_gc/ services/java_gc/
+RUN cd services/java_gc && ./gradlew installDist --no-daemon
+
+# --- Sidecar build ---
+FROM base AS sidecar-build
+COPY lb/sidecar/ lb/sidecar/
+RUN npm run build -w @backpressure/sidecar
 
 # --- Generator runtime ---
 FROM node:22-slim AS generator
@@ -41,3 +64,39 @@ ENV GENERATOR_HOST=generator
 ENV GENERATOR_PORT=8080
 ENV WEB_PORT=3001
 CMD ["node", "web/dist/server/main.js"]
+
+# --- Sinkhole runtime ---
+FROM node:22-slim AS sinkhole
+WORKDIR /app
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/package.json ./
+COPY --from=sinkhole-build /app/services/sinkhole ./services/sinkhole
+EXPOSE 8080
+ENV PORT=8080
+CMD ["node", "services/sinkhole/dist/main.js"]
+
+# --- Simulated-pause runtime ---
+FROM node:22-slim AS simulated-pause
+WORKDIR /app
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/package.json ./
+COPY --from=simulated-pause-build /app/services/simulated_pause ./services/simulated_pause
+EXPOSE 8080
+ENV PORT=8080
+CMD ["node", "services/simulated_pause/dist/main.js"]
+
+# --- Java GC runtime ---
+FROM eclipse-temurin:21-jre-jammy AS java-gc
+WORKDIR /app
+COPY --from=java-gc-build /app/services/java_gc/build/install/java-gc/ ./
+EXPOSE 8080
+ENV PORT=8080
+CMD ["./bin/java-gc"]
+
+# --- Sidecar runtime ---
+FROM node:22-slim AS sidecar
+WORKDIR /app
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/package.json ./
+COPY --from=sidecar-build /app/lb/sidecar ./lb/sidecar
+CMD ["node", "lb/sidecar/dist/main.js"]

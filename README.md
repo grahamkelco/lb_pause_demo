@@ -26,7 +26,34 @@ This simulation implements a sidecar-based backpressure mechanism where a lightw
 
 # Start the simulation
 ./run.sh up
+
+# Open the Web UI
+open http://localhost:3001
 ```
+
+## Using the Simulation UI
+
+Once the services are running, open **http://localhost:3001** to access the dashboard.
+
+### Server Types
+
+| Type | Description |
+|------|-------------|
+| **sinkhole** | Instant 200 OK responses with no work. Sidecar always reports healthy. Useful as a baseline. |
+| **sinkhole-random** | Same instant responses, but the sidecar randomly toggles healthy/unhealthy. Demonstrates backpressure drain/resume behavior in isolation from actual server load. |
+| **simulated-pause** | Performs real CPU work (SHA-256 hashing) on each request and simulates GC-like stop-the-world pauses — a 1.5s busy-spin that interrupts request processing mid-computation via safepoint checks, just like a real JVM GC. The sidecar detects pauses via UDP IPC and drains traffic. |
+| **java-gc** | A real Java 21 server (G1GC) that allocates memory and performs CPU work on each request, creating genuine GC pressure. JFR safepoint events are streamed to the sidecar over UDP for real-time pause detection. |
+
+### Recommended Demo
+
+1. Select **simulated-pause** as the server type
+2. Set **Servers** to **4**
+3. Set **RPS** to **100**
+4. Set **Duration** to **180** seconds
+5. Run with **Backpressure ON** — observe that the load balancer drains paused servers, keeping p99 latency low
+6. Run again with **Backpressure OFF** — observe the p99 spike as requests pile up on paused servers
+
+The **Backpressure** toggle controls whether the load balancer honors sidecar drain signals. When off, it routes pure round-robin regardless of server health, demonstrating the latency impact of sending traffic to a paused server.
 
 ## Commands
 
@@ -39,7 +66,7 @@ This simulation implements a sidecar-based backpressure mechanism where a lightw
 | `./run.sh test <target>` | Run tests for a package |
 | `./run.sh help` | Show all available commands |
 
-**Targets:** `lb`, `sidecar`, `generator`, `web`
+**Targets:** `lb`, `sidecar`, `generator`, `web`, `sinkhole`, `java-gc`
 
 ## Project Structure
 
