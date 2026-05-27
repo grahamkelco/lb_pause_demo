@@ -19,6 +19,7 @@ interface DrainState {
  */
 export class DrainManager {
   private readonly state = new Map<string, DrainState>();
+  private backpressureEnabled: boolean = true;
 
   /**
    * Builds a map key from a server's host and port.
@@ -71,12 +72,34 @@ export class DrainManager {
 
   /**
    * Returns whether a server is currently drained.
+   * When backpressure is disabled, always returns false.
    * @param server - The server to check.
    * @returns True if the server is drained and should not receive traffic.
    */
   isDrained(server: ServerConfig): boolean {
+    if (!this.backpressureEnabled) {
+      return false;
+    }
     const entry = this.state.get(DrainManager.serverKey(server));
     return entry?.drained ?? false;
+  }
+
+  /**
+   * Returns whether backpressure-based draining is enabled.
+   * @returns True if sidecar drain signals are being honored.
+   */
+  get enabled(): boolean {
+    return this.backpressureEnabled;
+  }
+
+  /**
+   * Enables or disables backpressure-based draining.
+   * When disabled, isDrained() always returns false, effectively
+   * making the router behave as plain round-robin.
+   * @param value - True to honor drain signals, false to ignore them.
+   */
+  setEnabled(value: boolean): void {
+    this.backpressureEnabled = value;
   }
 
   /**

@@ -21,7 +21,11 @@ export function createHealthChecks(names: readonly string[]): HealthCheck[] {
       case "random_failure":
         return new RandomFailure();
       case "gc_pause":
-        return new GcPauseCheck();
+        return new GcPauseCheck({
+          port: process.env["GC_PAUSE_UDP_PORT"]
+            ? parseInt(process.env["GC_PAUSE_UDP_PORT"], 10)
+            : undefined,
+        });
       case "random":
         return new RandomHealthCheck();
       default:

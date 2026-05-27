@@ -33,6 +33,12 @@ FROM base AS simulated-pause-build
 COPY services/simulated_pause/ services/simulated_pause/
 RUN npm run build -w @backpressure/simulated-pause
 
+# --- Java GC build ---
+FROM eclipse-temurin:21-jdk-jammy AS java-gc-build
+WORKDIR /app
+COPY services/java_gc/ services/java_gc/
+RUN cd services/java_gc && ./gradlew installDist --no-daemon
+
 # --- Sidecar build ---
 FROM base AS sidecar-build
 COPY lb/sidecar/ lb/sidecar/
@@ -78,6 +84,14 @@ COPY --from=simulated-pause-build /app/services/simulated_pause ./services/simul
 EXPOSE 8080
 ENV PORT=8080
 CMD ["node", "services/simulated_pause/dist/main.js"]
+
+# --- Java GC runtime ---
+FROM eclipse-temurin:21-jre-jammy AS java-gc
+WORKDIR /app
+COPY --from=java-gc-build /app/services/java_gc/build/install/java-gc/ ./
+EXPOSE 8080
+ENV PORT=8080
+CMD ["./bin/java-gc"]
 
 # --- Sidecar runtime ---
 FROM node:22-slim AS sidecar

@@ -7,13 +7,15 @@ interface SimulationControlsProps {
   running: boolean;
   error: string | null;
   serverGroups: ServerGroup[];
+  backpressureEnabled: boolean;
+  onToggleBackpressure: () => void;
 }
 
 /**
  * Form for configuring and triggering a simulation run.
  * Server type and count are populated dynamically from the LB.
  */
-export function SimulationControls({ onRun, running, error, serverGroups }: SimulationControlsProps): React.JSX.Element {
+export function SimulationControls({ onRun, running, error, serverGroups, backpressureEnabled, onToggleBackpressure }: SimulationControlsProps): React.JSX.Element {
   const [rps, setRps] = useState(100);
   const [duration, setDuration] = useState(10);
   const [serverType, setServerType] = useState("");
@@ -93,6 +95,20 @@ export function SimulationControls({ onRun, running, error, serverGroups }: Simu
           {running ? "Running..." : "Run"}
         </button>
       </form>
+      <div className="backpressure-toggle">
+        <label htmlFor="backpressure">
+          <input
+            id="backpressure"
+            type="checkbox"
+            checked={backpressureEnabled}
+            onChange={onToggleBackpressure}
+          />
+          Backpressure (sidecar drain signals)
+        </label>
+        <span className={`bp-status ${backpressureEnabled ? "bp-on" : "bp-off"}`}>
+          {backpressureEnabled ? "ON" : "OFF"}
+        </span>
+      </div>
       {error && <div className="error-message">{error}</div>}
     </div>
   );

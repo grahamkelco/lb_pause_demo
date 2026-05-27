@@ -71,6 +71,9 @@ export class LoadRunner {
     const start = performance.now();
     try {
       const response = await fetch(uri);
+      // Consume the body to release the socket back to the connection pool.
+      // Without this, undici holds the socket open and the pool exhausts rapidly.
+      await response.body?.cancel();
       const latency = performance.now() - start;
       metrics.record(latency, response.ok);
     } catch {

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import * as http from "node:http";
 import { RoundRobinRouter } from "../router.js";
 import { AdminHandler } from "../admin_handler.js";
+import { DrainManager } from "../drain_manager.js";
 import type { ServerConfig } from "../config.js";
 
 const SERVERS: readonly ServerConfig[] = [
@@ -16,7 +17,7 @@ const SERVERS: readonly ServerConfig[] = [
  */
 async function createTestServer(): Promise<{ url: string; server: http.Server }> {
   const router = new RoundRobinRouter(SERVERS);
-  const handler = new AdminHandler(router);
+  const handler = new AdminHandler(router, new DrainManager());
 
   const server = http.createServer((req, res) => {
     if (!handler.handleRequest(req, res)) {
@@ -82,7 +83,7 @@ describe("AdminHandler", () => {
 
   it("returns false for non-admin paths", () => {
     const router = new RoundRobinRouter(SERVERS);
-    const handler = new AdminHandler(router);
+    const handler = new AdminHandler(router, new DrainManager());
 
     const req = { url: "/query" } as http.IncomingMessage;
     const res = {} as http.ServerResponse;

@@ -18,6 +18,7 @@ const TYPE_PATH_MAP: Record<string, string> = {
   "sinkhole": "/query",
   "sinkhole-random": "/query",
   "simulated-pause": "/query",
+  "java-gc": "/query",
 };
 
 /**

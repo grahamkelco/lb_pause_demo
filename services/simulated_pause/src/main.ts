@@ -1,7 +1,12 @@
 import { SimulatedPauseServer } from "./simulated_pause_server.js";
 
 const port = parseInt(process.env["PORT"] ?? "8080", 10);
-const server = new SimulatedPauseServer(port);
+const sidecarHost = process.env["SIDECAR_HOST"] ?? undefined;
+const sidecarPort = process.env["SIDECAR_PORT"]
+  ? parseInt(process.env["SIDECAR_PORT"], 10)
+  : undefined;
+
+const server = new SimulatedPauseServer(port, { sidecarHost, sidecarPort });
 
 await server.start();
 

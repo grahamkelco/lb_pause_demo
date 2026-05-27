@@ -205,3 +205,37 @@ button:disabled {
   margin-top: 8px;
   font-size: 0.85rem;
 }
+
+.backpressure-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #30363d;
+}
+
+.backpressure-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.bp-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.bp-on {
+  background: #1b3d2f;
+  color: #3fb950;
+}
+
+.bp-off {
+  background: #3d1f28;
+  color: #f85149;
+}

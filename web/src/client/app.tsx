@@ -2,6 +2,7 @@ import { useMetrics } from "./hooks/use_metrics";
 import { useSimulation } from "./hooks/use_simulation";
 import { useServices } from "./hooks/use_services";
 import { useServerGroups } from "./hooks/use_server_groups";
+import { useBackpressure } from "./hooks/use_backpressure";
 import { SimulationControls } from "./components/simulation_controls";
 import { LatencyChart } from "./components/latency_chart";
 import { ThroughputChart } from "./components/throughput_chart";
@@ -32,6 +33,7 @@ export function App(): React.JSX.Element {
   const simulation = useSimulation();
   const services = useServices();
   const serverGroups = useServerGroups();
+  const backpressure = useBackpressure();
 
   const generatorData = metrics.find((m) => m.name === "generator") ?? null;
 
@@ -54,6 +56,8 @@ export function App(): React.JSX.Element {
         running={simulation.running}
         error={simulation.error}
         serverGroups={serverGroups}
+        backpressureEnabled={backpressure.enabled}
+        onToggleBackpressure={backpressure.toggle}
       />
 
       <section className="dashboard-section">

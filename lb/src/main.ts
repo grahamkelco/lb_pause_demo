@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   const config = loadConfig(configPath);
   const drainManager = new DrainManager();
   const router = new RoundRobinRouter(config.servers, drainManager);
-  const adminHandler = new AdminHandler(router);
+  const adminHandler = new AdminHandler(router, drainManager);
   const server = new ProxyServer(router, config.listen.port, adminHandler);
   const sidecarListener = new SidecarListener(config.servers, drainManager);
 

@@ -40,5 +40,46 @@ export function createServicesRoutes(
     })();
   });
 
+  /**
+   * GET /api/services/backpressure - Returns current backpressure state.
+   */
+  router.get("/backpressure", (_req, res) => {
+    const url = `http://${lbTarget.host}:${String(lbTarget.port)}/admin/backpressure`;
+
+    void (async () => {
+      try {
+        const lbRes = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const data: unknown = await lbRes.json();
+        res.status(lbRes.status).json(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to reach LB";
+        res.status(502).json({ error: message });
+      }
+    })();
+  });
+
+  /**
+   * POST /api/services/backpressure - Toggles backpressure on/off.
+   */
+  router.post("/backpressure", (req, res) => {
+    const url = `http://${lbTarget.host}:${String(lbTarget.port)}/admin/backpressure`;
+
+    void (async () => {
+      try {
+        const lbRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(req.body),
+          signal: AbortSignal.timeout(5000),
+        });
+        const data: unknown = await lbRes.json();
+        res.status(lbRes.status).json(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to reach LB";
+        res.status(502).json({ error: message });
+      }
+    })();
+  });
+
   return router;
 }

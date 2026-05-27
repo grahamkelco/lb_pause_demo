@@ -54,10 +54,12 @@ export function loadConfig(): ServerConfig {
   );
 
   const generatorHost = process.env["GENERATOR_HOST"] ?? "localhost";
-  const generatorPort = parseInt(process.env["GENERATOR_PORT"] ?? "8080", 10);
+  const generatorPort = parseInt(process.env["GENERATOR_PORT"] ?? "8081", 10);
 
   const lbHost = process.env["LB_HOST"] ?? "localhost";
   const lbPort = parseInt(process.env["LB_PORT"] ?? "8080", 10);
+
+  const h = "127.0.0.1";
 
   const lbTarget: ServiceTarget = {
     name: "lb",
@@ -67,36 +69,39 @@ export function loadConfig(): ServerConfig {
   };
 
   const targets: ServiceTarget[] = [
-    {
-      name: "generator",
-      host: generatorHost,
-      port: generatorPort,
-      metricsPath: "/metrics",
-    },
-    { name: "sinkhole-1", host: "sinkhole-1", port: 8080, metricsPath: "/metrics" },
-    { name: "sinkhole-2", host: "sinkhole-2", port: 8080, metricsPath: "/metrics" },
-    { name: "sinkhole-3", host: "sinkhole-3", port: 8080, metricsPath: "/metrics" },
-    { name: "sinkhole-4", host: "sinkhole-4", port: 8080, metricsPath: "/metrics" },
-    { name: "sidecar-1", host: "sidecar-1", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-2", host: "sidecar-2", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-3", host: "sidecar-3", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-4", host: "sidecar-4", port: 9100, metricsPath: "/metrics" },
-    { name: "sinkhole-random-1", host: "sinkhole-random-1", port: 8080, metricsPath: "/metrics" },
-    { name: "sinkhole-random-2", host: "sinkhole-random-2", port: 8080, metricsPath: "/metrics" },
-    { name: "sinkhole-random-3", host: "sinkhole-random-3", port: 8080, metricsPath: "/metrics" },
-    { name: "sinkhole-random-4", host: "sinkhole-random-4", port: 8080, metricsPath: "/metrics" },
-    { name: "sidecar-random-1", host: "sidecar-random-1", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-random-2", host: "sidecar-random-2", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-random-3", host: "sidecar-random-3", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-random-4", host: "sidecar-random-4", port: 9100, metricsPath: "/metrics" },
-    { name: "simulated-pause-1", host: "simulated-pause-1", port: 8080, metricsPath: "/metrics" },
-    { name: "simulated-pause-2", host: "simulated-pause-2", port: 8080, metricsPath: "/metrics" },
-    { name: "simulated-pause-3", host: "simulated-pause-3", port: 8080, metricsPath: "/metrics" },
-    { name: "simulated-pause-4", host: "simulated-pause-4", port: 8080, metricsPath: "/metrics" },
-    { name: "sidecar-simulated-pause-1", host: "sidecar-simulated-pause-1", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-simulated-pause-2", host: "sidecar-simulated-pause-2", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-simulated-pause-3", host: "sidecar-simulated-pause-3", port: 9100, metricsPath: "/metrics" },
-    { name: "sidecar-simulated-pause-4", host: "sidecar-simulated-pause-4", port: 9100, metricsPath: "/metrics" },
+    { name: "generator", host: generatorHost, port: generatorPort, metricsPath: "/metrics" },
+    { name: "sinkhole-1", host: h, port: 8001, metricsPath: "/metrics" },
+    { name: "sinkhole-2", host: h, port: 8002, metricsPath: "/metrics" },
+    { name: "sinkhole-3", host: h, port: 8003, metricsPath: "/metrics" },
+    { name: "sinkhole-4", host: h, port: 8004, metricsPath: "/metrics" },
+    { name: "sidecar-1", host: h, port: 9101, metricsPath: "/metrics" },
+    { name: "sidecar-2", host: h, port: 9102, metricsPath: "/metrics" },
+    { name: "sidecar-3", host: h, port: 9103, metricsPath: "/metrics" },
+    { name: "sidecar-4", host: h, port: 9104, metricsPath: "/metrics" },
+    { name: "sinkhole-random-1", host: h, port: 8005, metricsPath: "/metrics" },
+    { name: "sinkhole-random-2", host: h, port: 8006, metricsPath: "/metrics" },
+    { name: "sinkhole-random-3", host: h, port: 8007, metricsPath: "/metrics" },
+    { name: "sinkhole-random-4", host: h, port: 8008, metricsPath: "/metrics" },
+    { name: "sidecar-random-1", host: h, port: 9105, metricsPath: "/metrics" },
+    { name: "sidecar-random-2", host: h, port: 9106, metricsPath: "/metrics" },
+    { name: "sidecar-random-3", host: h, port: 9107, metricsPath: "/metrics" },
+    { name: "sidecar-random-4", host: h, port: 9108, metricsPath: "/metrics" },
+    { name: "simulated-pause-1", host: h, port: 8009, metricsPath: "/metrics" },
+    { name: "simulated-pause-2", host: h, port: 8010, metricsPath: "/metrics" },
+    { name: "simulated-pause-3", host: h, port: 8011, metricsPath: "/metrics" },
+    { name: "simulated-pause-4", host: h, port: 8012, metricsPath: "/metrics" },
+    { name: "sidecar-simulated-pause-1", host: h, port: 9109, metricsPath: "/metrics" },
+    { name: "sidecar-simulated-pause-2", host: h, port: 9110, metricsPath: "/metrics" },
+    { name: "sidecar-simulated-pause-3", host: h, port: 9111, metricsPath: "/metrics" },
+    { name: "sidecar-simulated-pause-4", host: h, port: 9112, metricsPath: "/metrics" },
+    { name: "java-gc-1", host: h, port: 8013, metricsPath: "/metrics" },
+    { name: "java-gc-2", host: h, port: 8014, metricsPath: "/metrics" },
+    { name: "java-gc-3", host: h, port: 8015, metricsPath: "/metrics" },
+    { name: "java-gc-4", host: h, port: 8016, metricsPath: "/metrics" },
+    { name: "sidecar-java-gc-1", host: h, port: 9113, metricsPath: "/metrics" },
+    { name: "sidecar-java-gc-2", host: h, port: 9114, metricsPath: "/metrics" },
+    { name: "sidecar-java-gc-3", host: h, port: 9115, metricsPath: "/metrics" },
+    { name: "sidecar-java-gc-4", host: h, port: 9116, metricsPath: "/metrics" },
   ];
 
   return { port, scrapeIntervalMs, retentionMs, targets, lbTarget };

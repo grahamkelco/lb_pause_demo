@@ -1,6 +1,6 @@
 import * as http from "node:http";
 import { MetricsTracker } from "./metrics_tracker.js";
-import { GcPauseSimulator } from "./gc_pause_simulator.js";
+import { GcPauseSimulator, type GcPauseSimulatorConfig } from "./gc_pause_simulator.js";
 import { doCpuWork } from "./cpu_work.js";
 
 /**
@@ -17,11 +17,12 @@ export class SimulatedPauseServer {
   /**
    * Creates a new SimulatedPauseServer.
    * @param port - The port number to listen on.
+   * @param gcConfig - Optional GC pause simulator configuration.
    */
-  constructor(port: number) {
+  constructor(port: number, gcConfig?: GcPauseSimulatorConfig) {
     this.port = port;
     this.metrics = new MetricsTracker();
-    this.gcSimulator = new GcPauseSimulator();
+    this.gcSimulator = new GcPauseSimulator(gcConfig);
     this.server = http.createServer((req, res) => {
       this.handleRequest(req, res);
     });
@@ -49,10 +50,12 @@ export class SimulatedPauseServer {
 
   /**
    * Handles /query requests by performing CPU work and recording the request.
+   * Safepoint checks during the CPU loop allow a pending GC pause to
+   * interrupt this request mid-computation, just like a real JVM.
    * @param res - The server response.
    */
   private handleQuery(res: http.ServerResponse): void {
-    doCpuWork(2000);
+    doCpuWork(2000, () => this.gcSimulator.checkSafepoint());
     this.metrics.recordRequest();
     res.setHeader("Content-Type", "text/plain");
     res.writeHead(200);
